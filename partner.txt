@@ -1,0 +1,3 @@
+student,full name (as in Canvas),Net ID,CS ID,wisc email (not CS email),campus ID number
+1,Mykola Kusyy,kusyy,mykola,kusyy@wisc.edu,9071132873
+2,Garrett McLaughlin,gmclaughlin2,gmclaughlin,gmclaughlin2@wisc.edu,9072453484
