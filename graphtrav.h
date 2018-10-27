@@ -1,4 +1,7 @@
-
 // AUTHORS
 // MYKOLA KUSYY
 // GARRETT MCLAUGHLIN
+#ifndef GRAPHTRAV_H
+#define GRAPHTRAV_H
+
+#endif 

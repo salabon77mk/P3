@@ -5,40 +5,61 @@
 #include <stdio.h>
 #include <string.h>
 #include <dirent.h>
+#include "target.h"
+#include "parser.h"
+
+static char* getMake();
+static struct Target** getRules(const char* makefile);
+static void setNumRules(const struct Target** rules, size_t num);
+
+int main(void){
+	const char* makefile = getMake();
+	struct Target** rules = getRules(makefile);
+	size_t numRules;
+}
 
 // Find a makefile
 // If it exists, we will be able to safely open it and pass it to parser
-static int findMake(){
+static char* getMake(){
 	//TODO Should be easy to implement extra credit with an arg here
 	DIR *dirp = opendir(".");
 	struct dirent *entry;
 
-	const char* lilMake = "makefile";
-	const char* bigMake = "Makefile";
+	
+	char* lilMake = "testmake"; //CHANGE TO makefile WHEN FINISHED
+	char* bigMake = "Makefile";
 	//extra credit const char* targetFile
-
 
 	while((entry = readdir(dirp)) != NULL){
 		if(!strcmp(entry->d_name, lilMake)){
 			closedir(dirp);
-			return 0;
+			return lilMake;
 		}
 
 		if(!strcmp(entry->d_name, bigMake)){
 			closedir(dirp);
-			return 0;
+			return bigMake;
 		}
 	}
 
 	closedir(dirp);
-	return -1; //failed to find
+	return NULL; //failed to find
 }
 
+static struct Target** getRules(const char* makefile){
+	FILE *fptr;
 
-int main(void){
-	int found = findMake();
-	printf("OI OI FOUND YOU: %d", found);
-	return 0;
+	fptr = fopen(makefile, "r");
+
+	if(fptr == NULL){
+		fprintf(stderr, "Failed to open makefile, exiting");
+		exit(0);
+	}
+	struct Target** rules = parseRules(fptr);
+	fclose(fptr);
+	return rules;
 }
 
-
+static void setNumRules(const struct Target** rules, size_t num){
+	//do loops
+}

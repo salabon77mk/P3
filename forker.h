@@ -1,3 +1,7 @@
 // AUTHORS
 // MYKOLA KUSYY
 // GARRETT MCLAUGHLIN
+#ifndef FORKER_H
+#define FORKER_H
+
+#endif
