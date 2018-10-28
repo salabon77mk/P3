@@ -9,16 +9,18 @@
 struct Target{
 	char* target;
 	char** commands;
-	unsigned int modTime;
+	int modTime;
+	int isRule;
+	//int isFile // modify this in setMoDTime?
 	size_t numCommands;
 	size_t numChildren;
 	struct Target** children;
 };
 
-void setTarget(char* parsedTarg, struct Target* targ);
-void setCommand(char* command, unsigned int index, struct Target* targ);
-void setModTimeTarget(struct Target* targ);
-void setModTimeChild(struct Target* targ);
-void setChild(unsigned int index, struct Target* targ, struct Target* child);
 
+struct Target* createTarget(char* fileName, char** comms, struct Target** deps, size_t numComms, size_t numChild);
+
+struct Target* createChild(char* fileName);
+
+void printCont(const struct Target* targ);
 #endif
