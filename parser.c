@@ -7,8 +7,8 @@
 #include "target.h"
 
 struct Sizes{
-	size_t childCount;
 	size_t commandCount;
+	size_t childCount;
 };
 
 static const size_t MAX_CHILDREN_SIZE = 255;
@@ -30,23 +30,27 @@ struct Target** parseRules(FILE *fptr){
 	
 	struct Target** rules = (struct Target**) malloc(sizeof(struct Target*) * MAX_CHILDREN_SIZE);
 	size_t ruleCount = 0;
-	char ch; 
-	while((ch = fgetc(fptr))!= EOF){
+	char ch = fgetc(fptr); 
+	while(ch != EOF){
 		//Skip blank lines
 		skipNewline(fptr, &ch);
-		struct Sizes sizeCounts = {0, 0};
 		
-		char* targ = parseTarg(fptr, &ch);
-		struct Target** deps = parseChildren(fptr, &ch, &sizeCounts);
-		char** commands = parseCommands(fptr, &ch, &sizeCounts);
-		struct Target* rule = createTarget(targ, commands, deps, sizeCounts.commandCount, sizeCounts.childCount);
-		rules[ruleCount] = rule;
-		ruleCount++;
-		printCont(rule);
+		if( ch != EOF){
+			//check if file is just a bunch of \n chars
+			struct Sizes sizeCounts = {0, 0};
+		
+			char* targ = parseTarg(fptr, &ch);
+			struct Target** deps = parseChildren(fptr, &ch, &sizeCounts);
+			char** commands = parseCommands(fptr, &ch, &sizeCounts);
+			struct Target* rule = createTarget(targ, commands, deps, sizeCounts.commandCount, sizeCounts.childCount);
+			rules[ruleCount] = rule;
+			ruleCount++;
+			printCont(rule);
+		}
 	}
-
-	//realloc rules to proper size
-	return NULL; //temporary
+	//should somehow work it out if a file is entirely blank??
+	//realloc array?
+	return rules; 
 }
 
 static char* parseTarg(FILE *fptr, char* ch){
@@ -57,12 +61,13 @@ static char* parseTarg(FILE *fptr, char* ch){
 		exit(-1);
 	}
 
-	char* str = createStr(MAX_FILE_SIZE);
 	size_t counter = 0;
+	char* str = createStr(MAX_FILE_SIZE);
 	//TODO Exit if EOF encountered in such a potential line
 	while(*ch != EOF){
 		if(counter >= MAX_FILE_SIZE){
 			//TODO TOO BIG PRINT TO STDERR WITH LINE NUM
+			free(str);
 		}
 
 		if(counter < MAX_FILE_SIZE && *ch != ':'){
@@ -73,11 +78,12 @@ static char* parseTarg(FILE *fptr, char* ch){
 
 		else if(counter < MAX_FILE_SIZE && *ch == ':'){
 			str[counter] = '\0';
-//			*ch = fgetc(fptr); // need to do for future parsing
+			*ch = fgetc(fptr); // need to do for future parsing
 			return str;
 		}
 	}
-	free(str); //if we don't, clang will get mad
+	//shouldn't have reached here
+	free(str);
 	checkEOF(fptr, ch); //TODO need to flesh out because make should terminate if EOF encountered after a target
 	//TODO HANDLE EOF
 	return NULL; //probably should be something else
@@ -88,7 +94,7 @@ static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCou
 	
 	size_t childCount = 0;
 	size_t lineLenCount = 0; //length of the string
-	while((*ch = fgetc(fptr)) != '\n' && lineLenCount < MAX_LINE_SIZE && *ch != EOF){
+	while(*ch != '\n' && lineLenCount < MAX_LINE_SIZE && *ch != EOF){
 		skipWhitespace(fptr, ch);	
 
 		size_t fileLenCount = 0; //length of file name
@@ -116,6 +122,7 @@ static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCou
 	}
 	 //for future parsing
 	checkEOF(fptr, ch); 
+	*ch = fgetc(fptr);
 	sizeCounts->childCount = childCount;
 	return deps;
 }
@@ -127,7 +134,8 @@ static char** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts){
 		
 		size_t currLineLen = 0;
 		char* str = createStr(MAX_LINE_SIZE);
-
+		
+		//parse the line
 		while((*ch = fgetc(fptr)) != EOF && currLineLen < MAX_LINE_SIZE && *ch != '\n'){
 			str[currLineLen] = *ch;
 			currLineLen++;
@@ -153,12 +161,14 @@ static void skipNewline(FILE *fptr, char* ch){
 	if(*ch == '\n'){
 		while(( *ch = fgetc(fptr)) != EOF && *ch == '\n');			
 	}
+
 }
 
 static void skipWhitespace(FILE *fptr, char* ch){
 	if(*ch == ' '){
 		while(( *ch = fgetc(fptr)) != EOF && *ch == ' ');
 	}
+
 }
 
 static char* createStr(size_t size){
@@ -169,11 +179,10 @@ static char* createStr(size_t size){
 	}
 	return str;
 }
-
+//peek ahead to see if unexpected EOF
 static void checkEOF(FILE *fptr, char* ch){
 	if(*ch == EOF){
 		fprintf(stderr, "Encountered EOF after either a rule or target");
 		exit(-1);
 	}
-	*ch = fgetc(fptr);
 }
