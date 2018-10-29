@@ -9,12 +9,13 @@
 #include "parser.h"
 
 static char* getMake();
-static struct Target** getRules(const char* makefile);
+static struct Rules* getRules(const char* makefile);
 static void setNumRules(const struct Target** rules, size_t num);
+
 
 int main(void){
 	const char* makefile = getMake();
-	struct Target** rules = getRules(makefile);
+	struct Rules* rules = getRules(makefile);
 	size_t numRules;
 }
 
@@ -46,7 +47,7 @@ static char* getMake(){
 	return NULL; //failed to find
 }
 
-static struct Target** getRules(const char* makefile){
+static struct Rules* getRules(const char* makefile){
 	FILE *fptr;
 
 	fptr = fopen(makefile, "r");
@@ -55,7 +56,7 @@ static struct Target** getRules(const char* makefile){
 		fprintf(stderr, "Failed to open makefile, exiting");
 		exit(0);
 	}
-	struct Target** rules = parseRules(fptr);
+	struct Rules* rules = parseRules(fptr);
 	fclose(fptr);
 	return rules;
 }
