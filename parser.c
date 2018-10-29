@@ -23,12 +23,17 @@ static char** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts);
 static void skipNewline(FILE *fptr, char* ch /*,  unsigned int* lineNum*/);
 static void skipWhitespace(FILE *fptr, char* ch);
 static char* createStr(size_t size);
-static void checkEOF(FILE *fptr, char* ch);
+static void checkEOF(char* ch);
 
 struct Target** parseRules(FILE *fptr){
 	unsigned int lineNum = 0;
 	
 	struct Target** rules = (struct Target**) malloc(sizeof(struct Target*) * MAX_CHILDREN_SIZE);
+
+	if( rules == NULL){
+		fprintf(stderr, "malloc failed in parse rules");
+		exit(-1);
+	}
 	size_t ruleCount = 0;
 	char ch = fgetc(fptr); 
 	while(ch != EOF){
@@ -64,29 +69,25 @@ static char* parseTarg(FILE *fptr, char* ch){
 	size_t counter = 0;
 	char* str = createStr(MAX_FILE_SIZE);
 	//TODO Exit if EOF encountered in such a potential line
-	while(*ch != EOF){
-		if(counter >= MAX_FILE_SIZE){
-			//TODO TOO BIG PRINT TO STDERR WITH LINE NUM
-			free(str);
-		}
-
-		if(counter < MAX_FILE_SIZE && *ch != ':'){
-			str[counter] = *ch;
-			counter++;
-			*ch = fgetc(fptr);
-		}
-
-		else if(counter < MAX_FILE_SIZE && *ch == ':'){
-			str[counter] = '\0';
-			*ch = fgetc(fptr); // need to do for future parsing
-			return str;
-		}
+	while(*ch != EOF && *ch != ':' && counter < MAX_FILE_SIZE){
+		str[counter] = *ch;
+		counter++;
+		*ch = fgetc(fptr);
 	}
-	//shouldn't have reached here
-	free(str);
-	checkEOF(fptr, ch); //TODO need to flesh out because make should terminate if EOF encountered after a target
-	//TODO HANDLE EOF
-	return NULL; //probably should be something else
+
+	checkEOF(ch);
+	if(counter >= MAX_FILE_SIZE){
+	//TODO TOO BIG PRINT TO STDERR WITH LINE NUM
+		free(str);
+		fprintf(stderr, "Exceeded file length");
+		exit(-1);
+	}
+
+	str[counter] = '\0';
+	*ch = fgetc(fptr); // need to do for future parsing
+	checkEOF(ch);
+	return str;
+	
 }
 
 static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCounts){
@@ -106,8 +107,15 @@ static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCou
 			lineLenCount++; //we're still on a line that must be incremented
 			*ch = fgetc(fptr);
 		}
+		if(fileLenCount >= MAX_FILE_SIZE){
+			free(str);
+			fprintf(stderr,"Too long file length");	
+			exit(-1);	
+		}
+		checkEOF(ch); //unexpected EOF (no commands to parse next)
+
 		// Add null char, no need to increment where we are in the line
-		if(fileLenCount < MAX_FILE_SIZE && childCount < MAX_CHILDREN_SIZE){
+		if(childCount < MAX_CHILDREN_SIZE){
 			str[fileLenCount] = '\0';
 			fileLenCount = 0;
 			struct Target* depen = createChild(str);
@@ -118,10 +126,12 @@ static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCou
 		else{
 			//TODO STRING TOO LONG OR RAN OUT OF SPACE FOR CHILDREN
 			free(str);
+			fprintf(stderr, "Too many files included");
+			exit(-1);
 		}
 	}
 	 //for future parsing
-	checkEOF(fptr, ch); 
+	checkEOF(ch); 
 	*ch = fgetc(fptr);
 	sizeCounts->childCount = childCount;
 	return deps;
@@ -158,16 +168,20 @@ static char** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts){
 }
 
 static void skipNewline(FILE *fptr, char* ch){ 
-	if(*ch == '\n'){
+	if(*ch == '\n' && *ch != EOF){
 		while(( *ch = fgetc(fptr)) != EOF && *ch == '\n');			
 	}
 
 }
 
 static void skipWhitespace(FILE *fptr, char* ch){
-	if(*ch == ' '){
+	if(*ch == ' ' && *ch != EOF){
 		while(( *ch = fgetc(fptr)) != EOF && *ch == ' ');
 	}
+
+	checkEOF(ch); 
+	// maybe we had a target followed by spaces into EOF eg 
+	// targ:                              EOF
 
 }
 
@@ -180,7 +194,7 @@ static char* createStr(size_t size){
 	return str;
 }
 //peek ahead to see if unexpected EOF
-static void checkEOF(FILE *fptr, char* ch){
+static void checkEOF(char* ch){
 	if(*ch == EOF){
 		fprintf(stderr, "Encountered EOF after either a rule or target");
 		exit(-1);
