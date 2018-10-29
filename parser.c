@@ -94,11 +94,15 @@ static char* parseTarg(FILE *fptr, char* ch, unsigned int* lineNum){
 	char* str = createStr(MAX_FILE_SIZE);
 	skipWhitespace(fptr, ch); //Will make sure we get right to actual content, also checks eof eg get a line "               EOF"
 		
-
 	while(*ch != EOF && *ch != ':' && counter < MAX_FILE_SIZE){
 		str[counter] = *ch;
 		counter++;
 		*ch = fgetc(fptr);
+
+		//Hot fix, account for "    target1  ffg   :" //maybe think this one through??
+		if(*ch == ' '){
+			skipWhitespace(fptr, ch);
+		}
 	}
 
 	checkEOF(ch); //Accounts for a line that could be "target     EOF"
