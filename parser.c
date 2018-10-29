@@ -6,6 +6,9 @@
 #include "parser.h"
 #include "target.h"
 
+//IMPORTANT NOTE: ALL FREE STATMENTS HAVE BEEN COMMENTED OUT (they follow an exit)
+//want to see if CLANG will complain
+
 struct Sizes{
 	size_t commandCount;
 	size_t childCount;
@@ -69,6 +72,7 @@ static char* parseTarg(FILE *fptr, char* ch){
 	size_t counter = 0;
 	char* str = createStr(MAX_FILE_SIZE);
 	//TODO Exit if EOF encountered in such a potential line
+	//TODO ACCOUNT FOR SPACES
 	while(*ch != EOF && *ch != ':' && counter < MAX_FILE_SIZE){
 		str[counter] = *ch;
 		counter++;
@@ -78,14 +82,13 @@ static char* parseTarg(FILE *fptr, char* ch){
 	checkEOF(ch);
 	if(counter >= MAX_FILE_SIZE){
 	//TODO TOO BIG PRINT TO STDERR WITH LINE NUM
-		free(str);
+	//	free(str);
 		fprintf(stderr, "Exceeded file length");
 		exit(-1);
 	}
 
 	str[counter] = '\0';
 	*ch = fgetc(fptr); // need to do for future parsing
-	checkEOF(ch);
 	return str;
 	
 }
@@ -108,11 +111,18 @@ static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCou
 			*ch = fgetc(fptr);
 		}
 		if(fileLenCount >= MAX_FILE_SIZE){
-			free(str);
+//			free(str);
 			fprintf(stderr,"Too long file length");	
 			exit(-1);	
 		}
 		checkEOF(ch); //unexpected EOF (no commands to parse next)
+
+		/* Newline found but no commands parsed, 
+		if(numCommands == 0 && *ch == '\n'){
+			free(str);
+			fprintf(stderr, "Too long file length");
+		}
+		*/
 
 		// Add null char, no need to increment where we are in the line
 		if(childCount < MAX_CHILDREN_SIZE){
@@ -123,16 +133,17 @@ static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCou
 			childCount++;
 		}
 
+
+
 		else{
 			//TODO STRING TOO LONG OR RAN OUT OF SPACE FOR CHILDREN
-			free(str);
+		//	free(str);
 			fprintf(stderr, "Too many files included");
 			exit(-1);
 		}
 	}
-	 //for future parsing
 	checkEOF(ch); 
-	*ch = fgetc(fptr);
+	*ch = fgetc(fptr); //finished with this, move on
 	sizeCounts->childCount = childCount;
 	return deps;
 }
@@ -142,15 +153,31 @@ static char** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts){
 	size_t numCommands = 0;
 	while(*ch == '\t' && *ch != EOF){
 		
+		skipWhitespace(fptr, ch); //in case we get something like \t             EOF
 		size_t currLineLen = 0;
 		char* str = createStr(MAX_LINE_SIZE);
 		
-		//parse the line
+		//parse the line. using fgets because first char will be \t
 		while((*ch = fgetc(fptr)) != EOF && currLineLen < MAX_LINE_SIZE && *ch != '\n'){
 			str[currLineLen] = *ch;
 			currLineLen++;
 		}
-		if(currLineLen < MAX_LINE_SIZE && numCommands < MAX_CHILDREN_SIZE){
+
+		if(currLineLen >= MAX_LINE_SIZE){
+		//	free(str);
+			fprintf(stderr, "Exceeded line length, exiting");
+			exit(-1);
+		}
+
+		/*conditional if numCommands is zero but encountered new line?
+		if(numCommands == 0 && *ch == '\t'){
+			free(str);
+			fprintf(stderr, "No commands found for that recipe");
+			exit(-1);
+		}
+		*/
+
+		if( numCommands < MAX_CHILDREN_SIZE){
 			str[currLineLen] = '\0';
 			currLineLen = 0;
 			commands[numCommands] = str;
@@ -159,10 +186,12 @@ static char** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts){
 		}
 
 		else{
-			//TODO TOO LONG
-			free(str);
+		//	free(str);
+			fprintf(stderr, "Too many commands, exiting");
+			exit(-1);
 		}
 	}
+	//don't check EOF here, handled by caller
 	sizeCounts->commandCount = numCommands;
 	return commands;
 }
