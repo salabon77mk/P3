@@ -19,14 +19,15 @@ static const size_t MAX_FILE_SIZE = 255; //Linux max file size
 static const size_t MAX_LINE_SIZE = 1024;
 
 
-static char* parseTarg(FILE *fptr, char* ch,  unsigned int* lineNum);
-static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCounts,  unsigned int* lineNum);
+static char* parseTarg(FILE *fptr, char* ch, unsigned int* lineNum);
+static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCounts, unsigned int* lineNum);
 static char** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts,  unsigned int* lineNum);
 static void skipNewline(FILE *fptr, char* ch,  unsigned int* lineNum );
 static void skipWhitespace(FILE *fptr, char* ch);
 static char* createStr(size_t size);
 static void checkEOF(char* ch);
 static struct Rules* createRules(struct Target** rules, size_t ruleCount);
+static void* reallocCheck(void* data, size_t currSize, size_t typeSize);
 
 
 struct Rules* parseRules(FILE *fptr){
@@ -55,7 +56,7 @@ struct Rules* parseRules(FILE *fptr){
 			struct Target* rule = createTarget(targ, commands, deps, sizeCounts.commandCount, sizeCounts.childCount);
 			rules[ruleCount] = rule;
 			ruleCount++;
-			printCont(rule);
+		//	printCont(rule);
 		}
 	}
 	//ensure file isn't empty
@@ -159,8 +160,8 @@ static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCou
 		//passed all checks, proceed
 		// Add null char, no need to increment where we are in the line
 		str[fileLenCount] = '\0';
+		struct Target* depen = createChild(str, fileLenCount);
 		fileLenCount = 0;
-		struct Target* depen = createChild(str);
 		deps[childCount] = depen;
 		childCount++;
 		
@@ -263,4 +264,14 @@ static struct Rules* createRules(struct Target** parsedRules, size_t ruleCount){
 
 	return rules;
 
+}
+
+static void* reallocCheck(void* data, size_t currSize, size_t typeSize){
+	void* newData =  realloc(data, (currSize * 2) * sizeof(typeSize));
+	if( newData == NULL){
+		free(newData);
+		fprintf(stderr, "Failed to realloc in parser.c:reallocCheck");
+		exit(-1);
+	}
+	return newData;
 }

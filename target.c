@@ -41,11 +41,12 @@ struct Target* createTarget(char* fileName, char** comms, struct Target** deps, 
 	targ->numCommands = numComms;
 	targ->numChildren = numChild;
 	targ->modTime = setModTime(targ);
-
+	targ->targetLen = 0; //we will never care for this value if it's a rule
+	targ->isRule = 1; // 0 is our true value
 	return targ;
 }
 
-struct Target* createChild(char* fileName){
+struct Target* createChild(char* fileName, size_t fileLen){
 	struct Target* targ = (struct Target*) malloc(sizeof(struct Target));
 
 	if(targ == NULL){
@@ -59,6 +60,8 @@ struct Target* createChild(char* fileName){
 	targ->numCommands = 0;
 	targ->numChildren = 0;
 	targ->modTime = setModTime(targ);
+	targ->targetLen = fileLen;
+	targ->isRule = 0; //not a rule
 	
 	return targ;
 }

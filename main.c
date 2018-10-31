@@ -7,6 +7,7 @@
 #include <dirent.h>
 #include "target.h"
 #include "parser.h"
+#include "graphtrav.h"
 
 static char* getMake();
 static struct Rules* getRules(const char* makefile);
@@ -16,7 +17,9 @@ static void setNumRules(const struct Target** rules, size_t num);
 int main(void){
 	const char* makefile = getMake();
 	struct Rules* rules = getRules(makefile);
-	size_t numRules;
+	rules = createGraph(rules);	
+
+	printf("Stop here debugger!");
 }
 
 // Find a makefile

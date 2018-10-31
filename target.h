@@ -12,6 +12,7 @@ struct Target{
 	int modTime;
 	int isRule;
 	//int isFile // modify this in setMoDTime?
+	size_t targetLen;
 	size_t numCommands;
 	size_t numChildren;
 	struct Target** children;
@@ -20,7 +21,7 @@ struct Target{
 
 struct Target* createTarget(char* fileName, char** comms, struct Target** deps, size_t numComms, size_t numChild);
 
-struct Target* createChild(char* fileName);
+struct Target* createChild(char* fileName, size_t targetLen);
 
 void printCont(const struct Target* targ);
 #endif

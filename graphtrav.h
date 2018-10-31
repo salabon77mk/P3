@@ -4,4 +4,8 @@
 #ifndef GRAPHTRAV_H
 #define GRAPHTRAV_H
 
-#endif 
+struct Rules* createGraph(struct Rules* rules);
+void build(struct Target* targ); //recursive builder
+
+#endif
+
