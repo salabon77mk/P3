@@ -26,7 +26,7 @@ struct Rules* createGraph(struct Rules* rules){
 void build(struct Target* targ){
 	int needBuild = 0; //will use later to keep track
 	for(size_t i = 0; i < targ->numChildren; i++){
-		if(targ->modTime < targ->children[i]->modTime){
+		if(targ->modTime <= targ->children[i]->modTime){
 			if(targ->children[i]->isRule){
 				build(targ->children[i]);
 			}
@@ -41,7 +41,7 @@ void build(struct Target* targ){
 
 	if(needBuild){
 		for(size_t i = 0; i < targ->numCommands; i++){
-			runCommands(targ->commands[i]);	
+			runCommands(targ->commands[i], targ->target);	
 		}
 	}	
 }

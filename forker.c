@@ -5,11 +5,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "target.h"
-static char* getCommand(const char* terminalLine);
-static const size_t MAX_LENGTH = 1024;
 
-void runCommands(char* terminalLine){
-		char *linuxCommand = getCommand(terminalLine);	
+void runCommands(char** commands, char* target){
 		int rc = fork();
 
 		if(rc < 0){
@@ -17,29 +14,21 @@ void runCommands(char* terminalLine){
 			exit(-1);
 		}
 		else if(rc == 0){
-			int success = execvp(linuxCommand, terminalLine);
+			int i = 0;
+			char* command = commands[i];
+			while(command != NULL){
+				printf("%s ", command);
+				i++;
+				command = commands[i];
+			}
+			printf("\n");
+
+			int success = execvp(commands[0], commands);
 
 			//shouldn't have reached here
 			if(success == -1){
-				fprintf(stderr, "Recipe failed at line\n%s", terminalLine);
+				fprintf(stderr, "Recipe failed for recipe \n%s", target);
 				exit(-1);
 			}
 		}
-}
-
-static char* getCommand(const char* terminalLine){
-	char* command = (char *) malloc(MAX_LENGTH);
-	if( command == NULL){
-		fprintf(stderr, "Failed to malloc in forkerc");
-		exit(-1);
-	}
-	char ch = terminalLine[0];
-	size_t i = 0;
-	while(ch != ' ' && i < MAX_LENGTH){
-		command[i] = ch;
-		i++;
-		ch = terminalLine[i];
-	}	
-	return command;
-
 }

@@ -12,7 +12,7 @@
 
 static int setModTime(struct Target* targ);
 
-struct Target* createTarget(char* fileName, char** comms, struct Target** deps, size_t numComms, size_t numChild){
+struct Target* createTarget(char* fileName, char*** comms, struct Target** deps, size_t numComms, size_t numChild){
 	struct Target* targ = (struct Target*) malloc(sizeof(struct Target));
 
 	if(targ == NULL){
@@ -36,7 +36,7 @@ struct Target* createTarget(char* fileName, char** comms, struct Target** deps, 
 	}
 
 	targ->target = fileName;
-	targ->commands = commands;
+	targ->commands = comms;
 	targ->children = children;
 	targ->numCommands = numComms;
 	targ->numChildren = numChild;
@@ -81,7 +81,11 @@ void printCont(const struct Target* targ){
 	printf("numChildren %zu\n", targ->numChildren);
 	
 	for(int i = 0; i < targ->numCommands; i++){
-		printf("TARGET COMMAND #%d, %s \n", i, targ->commands[i]);
+		int j = 0;
+		while(targ->commands[i][j] != NULL){
+			printf("COMMANDS %s\n", targ->commands[i][j]);
+			j++;
+		}
 	}
 
 	for(int i = 0; i < targ->numChildren; i++){

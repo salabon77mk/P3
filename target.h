@@ -8,7 +8,7 @@
 
 struct Target{
 	char* target;
-	char** commands;
+	char*** commands;
 	int modTime;
 	int isRule;
 	//int isFile // modify this in setMoDTime?
@@ -19,7 +19,7 @@ struct Target{
 };
 
 
-struct Target* createTarget(char* fileName, char** comms, struct Target** deps, size_t numComms, size_t numChild);
+struct Target* createTarget(char* fileName, char*** comms, struct Target** deps, size_t numComms, size_t numChild);
 
 struct Target* createChild(char* fileName, size_t targetLen);
 

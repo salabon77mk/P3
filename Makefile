@@ -1,8 +1,7 @@
 CC=gcc
 CFLAGS= -g
-DEPS = parser.h target.h graphtrav.h forker.h
+DEPS = parser.h target.h graphtrav.h forker.h 
 OBJ =main.o parser.o target.o graphtrav.o forker.o
-
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
