@@ -14,31 +14,34 @@ struct Sizes{
 	size_t childCount;
 };
 
-static const size_t MAX_CHILDREN_SIZE = 255;
 static const size_t MAX_FILE_SIZE = 255; //Linux max file size
 static const size_t MAX_LINE_SIZE = 1024;
 
-
 static struct Rules* createRules(struct Target** rules, size_t ruleCount);
-static char* parseTarg(FILE *fptr, char* ch, unsigned int* lineNum);
-static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCounts, unsigned int* lineNum);
+static char* parseTarg(FILE *fptr, char* ch, unsigned int* lineNum, char* currLine);
+static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCounts, unsigned int* lineNum, char* currLine);
 static char*** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts,  unsigned int* lineNum);
 
 static void skipNewline(FILE *fptr, char* ch,  unsigned int* lineNum );
 static void skipWhitespace(FILE *fptr, char* ch);
-static void checkEOF(char* ch);
-static void checkLineLen(const size_t currLen, const size_t maxLen, unsigned int* lineNum);
-static void checkColon(char* ch, unsigned int* lineNum);
+static void checkSize(const size_t currLen, const size_t maxLen, unsigned int* lineNum, char* currStr);
+static void checkEOF(char* ch, unsigned int* lineNum);
+static void checkColon(char* ch, unsigned int* lineNum, char* currLine);
+static void checkNULL(char* ch, unsigned int* lineNum);
 
 static char* createStr(size_t size);
 static void* reallocCheck(void* data, size_t currSize, size_t typeSize);
 static void* mallocCheck(void* somePointer);
+static void* freeAndNULL(void* ptr);
+
+static void printBadLine(char* currStr, unsigned int* lineNum);
+static char* getWholeLine(FILE *fptr, char* ch, unsigned int* lineNum);
 
 
 struct Rules* parseRules(FILE *fptr){
 	unsigned int lineNum = 0;
 	
-	struct Target** rules = (struct Target**) malloc(sizeof(struct Target*) * MAX_CHILDREN_SIZE);
+	struct Target** rules = (struct Target**) malloc(sizeof(struct Target*) * MAX_FILE_SIZE);
 
 	if( rules == NULL){
 		fprintf(stderr, "malloc failed in parse rules");
@@ -46,17 +49,19 @@ struct Rules* parseRules(FILE *fptr){
 	}
 	size_t ruleCount = 0;
 	char ch = fgetc(fptr); 
-	while(ch != EOF && ruleCount < MAX_CHILDREN_SIZE){
+	while(ch != EOF && ruleCount < MAX_FILE_SIZE){
 		//Skip blank lines
-		skipNewline(fptr, &ch, &lineNum);
-		
+		skipNewline(fptr, &ch, &lineNum); // skipping blank lines
+
 		//If EOF, just stop
 		if( ch != EOF){
-			//check if file is just a bunch of \n chars
 			struct Sizes sizeCounts = {0, 0};
 		
-			char* targ = parseTarg(fptr, &ch, &lineNum);
-			struct Target** deps = parseChildren(fptr, &ch, &sizeCounts, &lineNum);
+			char* currLine = getWholeLine(fptr, &ch, &lineNum);
+			char* targ = parseTarg(fptr, &ch, &lineNum, currLine);
+			struct Target** deps = parseChildren(fptr, &ch, &sizeCounts, &lineNum, currLine);
+			currLine = freeAndNULL(currLine);		
+			// Handle getting the whole line in parseCommands
 			char*** commands = parseCommands(fptr, &ch, &sizeCounts, &lineNum);
 			struct Target* rule = createTarget(targ, commands, deps, sizeCounts.commandCount, sizeCounts.childCount);
 			rules[ruleCount] = rule;
@@ -70,8 +75,8 @@ struct Rules* parseRules(FILE *fptr){
 		exit(-1);
 	}
 
-	//exit if too many children
-	if(ruleCount >= MAX_CHILDREN_SIZE){
+	//exit if too many children //add this check inside loop above
+	if(ruleCount >= MAX_FILE_SIZE){
 		fprintf(stderr, "File contains too many rules");
 		exit(-1);
 	}
@@ -88,32 +93,28 @@ struct Rules* parseRules(FILE *fptr){
 	return rulesStruct; 
 }
 
-static char* parseTarg(FILE *fptr, char* ch, unsigned int* lineNum){
-
-	if(*ch == ':'){
-		//TODO INCORPORATE LINE NUMBER IN ERROR
-		fprintf(stderr, "Target started with : at lineNum %u\n", *lineNum);
-		exit(-1);
-	}
+static char* parseTarg(FILE *fptr, char* ch, unsigned int* lineNum, char* currLine){
+	checkColon(ch, lineNum, currLine);
+	skipWhitespace(fptr, ch); //Will make sure we get right to actual content, also checks eof eg get a line "               EOF"
 
 	size_t counter = 0; //keep track of where we are in the line
 	char* str = createStr(MAX_FILE_SIZE);
-	skipWhitespace(fptr, ch); //Will make sure we get right to actual content, also checks eof eg get a line "               EOF"
-	checkEOF(ch);
 
 	while(*ch != EOF && *ch != ':' && counter < MAX_FILE_SIZE){
 		str[counter] = *ch;
 		counter++;
 		*ch = fgetc(fptr);
-
-		//Hot fix, account for "    target1  ffg   :" //maybe think this one through??
 		if(*ch == ' '){
 			skipWhitespace(fptr, ch);
+			//if it isn't a colon, that means additional rules -> NOT ALLOWED
+			if(*ch != ':'){
+				printBadLine(currLine, lineNum);
+			}
 		}
 	}
 
-	checkEOF(ch); //Accounts for a line that could be "target     EOF"
-	checkLineLen(counter, MAX_FILE_SIZE, lineNum);
+	checkEOF(ch, lineNum); //Accounts for a line that could be "target     EOF"
+//	checkSize(counter, MAX_FILE_SIZE, lineNum);
 
 	str[counter] = '\0';
 	*ch = fgetc(fptr); // need to do for future parsing
@@ -121,8 +122,8 @@ static char* parseTarg(FILE *fptr, char* ch, unsigned int* lineNum){
 	
 }
 
-static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCounts, unsigned int* lineNum){
-	struct Target** deps = (struct Target**) malloc(sizeof(struct Target) * MAX_CHILDREN_SIZE);
+static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCounts, unsigned int* lineNum, char* currLine){
+	struct Target** deps = (struct Target**) malloc(sizeof(struct Target) * MAX_FILE_SIZE);
 	if(deps == NULL){
 		fprintf(stderr, "Malloc failed in parse children");
 		exit(-1);
@@ -132,7 +133,7 @@ static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCou
 	size_t lineLenCount = 0; //length of the string
 	while(*ch != '\n' && lineLenCount < MAX_LINE_SIZE){
 		skipWhitespace(fptr, ch); //skip white space between each child and checks for unexpected EOF eg "target: rule1 rule2 EOF"
-		checkEOF(ch);
+		checkEOF(ch, lineNum);
 		size_t fileLenCount = 0; //length of file name
 		char* str = createStr(MAX_FILE_SIZE);
 		
@@ -142,26 +143,16 @@ static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCou
 			lineLenCount++; //we're still on a line that must be incremented
 			*ch = fgetc(fptr);
 		}
-		checkLineLen(fileLenCount, MAX_FILE_SIZE, lineNum);
-		checkEOF(ch); //safety check for next conditionals
-
-		// Scanned the line but no children found
-		//
-		// Check if blank
-		// Skip newlines
+//		checkSize(fileLenCount, MAX_FILE_SIZE, lineNum);
+		checkEOF(ch, lineNum); //safety check for next conditionals
+		
 		/*
-		if(childCount == 0 && *ch == '\n'){
-			free(str);
-			fprintf(stderr, "No commands given at line number %u", *lineNum);
-		}
 		//this wheere we do a realloc
-		if(childCount >= MAX_CHILDREN_SIZE){
+		if(childCount >= MAX_FILE_SIZE){
 			fprintf(stderr, "Too many files included");
 			exit(-1);
 		}
 		*/
-		//passed all checks, proceed
-		// Add null char, no need to increment where we are in the line
 		str[fileLenCount] = '\0';
 		struct Target* depen = createChild(str, fileLenCount);
 		fileLenCount = 0;
@@ -170,27 +161,27 @@ static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCou
 		
 	}
 	(*lineNum)++; //have to deref first otherwise we're incrementing an address -> BAD
-	checkEOF(ch); 
+	checkEOF(ch, lineNum); 
 	*ch = fgetc(fptr); //finished with this, move on
 	//maybe there's a ton of \n before a command
 	skipNewline(fptr, ch, lineNum);
-	checkEOF(ch); //check after in case we reached EOF eg "target: dep1 dep2 \n\n\n\n\n\n\nEOF"
+	checkEOF(ch, lineNum); //check after in case we reached EOF eg "target: dep1 dep2 \n\n\n\n\n\n\nEOF"
 	sizeCounts->childCount = childCount;
 	return deps;
 }
 
 static char*** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts, unsigned int* lineNum){
-	char*** commands = (char***) calloc(MAX_CHILDREN_SIZE, sizeof(char **));
+	char*** commands = (char***) calloc(MAX_FILE_SIZE, sizeof(char **));
 	size_t numCommands = 0;
 	while(*ch == '\t' && *ch != EOF){
 		*ch = fgetc(fptr); //already know it's tab, need to move on
 		skipWhitespace(fptr, ch); 
-		checkEOF(ch); //in case we get something like \t             EOF
+		checkEOF(ch, lineNum); //in case we get something like \t             EOF
 		
 		size_t currCommand = 0;
 		size_t currLineLen = 0;
 		size_t currChar = 0;
-		commands[numCommands] = (char**) calloc(MAX_CHILDREN_SIZE, sizeof(char*));	
+		commands[numCommands] = (char**) calloc(MAX_FILE_SIZE, sizeof(char*));	
 		
 		while(currLineLen < MAX_LINE_SIZE && *ch != '\n' && *ch != EOF){ 
 			commands[numCommands][currCommand] = createStr(MAX_LINE_SIZE);
@@ -200,7 +191,7 @@ static char*** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts, uns
 				currLineLen++;
 				*ch = fgetc(fptr);
 			}
-			checkLineLen(currLineLen, MAX_LINE_SIZE, lineNum);	
+//			checkSize(currLineLen, MAX_LINE_SIZE, lineNum);	
 
 			commands[numCommands][currCommand][currChar] = '\0';
 			currChar = 0;
@@ -216,7 +207,7 @@ static char*** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts, uns
 		}
 		*/
 		if(*ch != EOF){
-			checkLineLen(currLineLen, MAX_LINE_SIZE, lineNum);		
+//			checkSize(currLineLen, MAX_LINE_SIZE, lineNum);		
 			currLineLen = 0;
 			numCommands++;
 			(*lineNum)++; //going to a new line with new commands
@@ -259,24 +250,29 @@ static void skipWhitespace(FILE *fptr, char* ch){
 }
 
 //peek ahead to see if unexpected EOF
-static void checkEOF(char* ch){
+static void checkEOF(char* ch, unsigned int* lineNum){
 	if(*ch == EOF){
-		fprintf(stderr, "Encountered EOF after either a rule or target");
+		fprintf(stderr, "Unexpected EOF in line:%u", *lineNum);
 		exit(-1);
 	}
 }
 
-static void checkLineLen(const size_t currLen, const size_t maxLen, unsigned int* lineNum){
+static void checkSize(const size_t currLen, const size_t maxLen, unsigned int* lineNum, char* currStr){
 	if(currLen >= maxLen){
-		fprintf(stderr, "Exceeded line length at line number %u", *lineNum);
+		fprintf(stderr, "Exceeded line length at line %u: %s", *lineNum, currStr);
 		exit(-1);
-
 	}
 }
 
-static void checkColon(char* ch, unsigned int* lineNum){
+static void checkColon(char* ch, unsigned int* lineNum, char* currLine){
 	if(*ch == ':'){
-		fprintf(stderr, "Detected additional targets in %u", *lineNum);
+		printBadLine(currLine, lineNum);
+	}
+}
+
+static void checkNULL(char* ch, unsigned int* lineNum){
+	if(*ch == '\0'){
+		fprintf(stderr, "Unexpected NULL byte in line number: %u", *lineNum);
 		exit(-1);
 	}
 }
@@ -306,4 +302,33 @@ static void* mallocWrapper(size_t dataType, size_t multiplier){
 		exit(-1);
 	}
 	return data;
+}
+
+static void printBadLine(char* currStr, unsigned int* lineNum){
+	fprintf(stderr, "%u: Invalid Line: %s", *lineNum, currStr);
+	exit(-1);
+}
+
+static char* getWholeLine(FILE *fptr, char* ch, unsigned int* lineNum){
+	fpos_t position;
+	fgetpos(fptr, &position);
+	char pbvChar = *ch;
+	size_t counter = 0;
+	char* wholeLine = createStr(MAX_LINE_SIZE);
+
+	while(pbvChar != EOF && pbvChar != '\n' && counter < MAX_LINE_SIZE){
+		checkNULL(&pbvChar, lineNum);
+		wholeLine[counter] = pbvChar;
+		counter++;
+		pbvChar = fgetc(fptr);	
+	}
+	checkSize(counter, MAX_LINE_SIZE, lineNum, wholeLine);
+	fsetpos(fptr, &position); //reset file pointer back to beginning of line before exiting
+	return wholeLine;
+}
+
+static void* freeAndNULL(void* ptr){
+	free(ptr);
+	ptr = NULL;
+	return ptr;
 }
