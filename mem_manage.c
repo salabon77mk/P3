@@ -20,7 +20,8 @@ void* reallocWrapper(void* data, size_t newSize, size_t typeSize){
 		fprintf(stderr, "Failed to realloc in parser.c:doubleAllocatedMem");
 		exit(-1);
 	}
-	return newData;
+	data = newData;
+	return data;
 }
 
 void* doubleAllocatedMem(void* data, size_t* currSize, size_t typeSize){
@@ -31,7 +32,8 @@ void* doubleAllocatedMem(void* data, size_t* currSize, size_t typeSize){
 		exit(-1);
 	}
 	*currSize = (*currSize) * 2;
-	return newData;
+	data = newData;
+	return data;
 }
 
 void* mallocWrapper(size_t dataType, size_t multiplier){

@@ -24,7 +24,7 @@ static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCou
 //char*** equiv to string[][], will help for execvp
 static char*** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts,  unsigned int* lineNum);
 
-static void skipNewline(FILE *fptr, char* ch,  unsigned int* lineNum );
+static void skipNewlineComm(FILE *fptr, char* ch,  unsigned int* lineNum );
 static void skipWhitespace(FILE *fptr, char* ch);
 static void skipWhitespaceTabs(FILE *fptr, char* ch);
 static void checkSize(const size_t currLen, const size_t maxLen, unsigned int* lineNum, char* currStr);
@@ -38,19 +38,18 @@ struct Rules* parseRules(FILE *fptr){
 	unsigned int lineNum = 0;
 	size_t ruleSize = 255;
 	struct Target** rules = (struct Target**) mallocWrapper(sizeof(struct Target*), ruleSize);
-	
 	size_t ruleCount = 0;
 	char ch = fgetc(fptr); 
 	while(ch != EOF){
-		//Skip blank lines
-		skipNewline(fptr, &ch, &lineNum); // skipping blank lines
-
+		//Skip blank lines and comments
+		skipNewlineComm(fptr, &ch, &lineNum);
+		
 		if(ruleCount >= ruleSize){
-			//realloc
+			rules = (struct Target**) doubleAllocatedMem(rules, &ruleSize, sizeof(struct Target*));
 		}
-
+		
 		//If EOF, just stop
-		if( ch != EOF){
+		if(ch != EOF){
 			struct Sizes sizeCounts = {0, 0};
 		
 			char* currLine = getWholeLine(fptr, &ch, &lineNum);
@@ -71,14 +70,8 @@ struct Rules* parseRules(FILE *fptr){
 		exit(-1);
 	}
 
-	//realloc so rest of program will work nicely
-	struct Target** returnRules = (struct Target**) realloc(rules, ruleCount * sizeof(struct Target*));
-	if(returnRules == NULL){
-		free(returnRules);
-		fprintf(stderr, "Failed to realloc in parseRules");
-		exit(-1);
-	}
-
+	//realloc so rest of program runs nice
+	rules = (struct Target**) reallocWrapper(rules, ruleCount, sizeof(struct Target*));
 	struct Rules* rulesStruct = createRules(rules, ruleCount);
 	return rulesStruct; 
 }
@@ -87,9 +80,9 @@ static char* parseTarg(FILE *fptr, char* ch, unsigned int* lineNum, char* currLi
 	checkColon(ch, lineNum, currLine);
 	skipWhitespace(fptr, ch); //Will make sure we get right to actual content
 	size_t counter = 0; //keep track of where we are in the line
-	char* str = createStr(MAX_FILE_SIZE);
+	char* str = createStr(MAX_LINE_SIZE);
 
-	while(*ch != EOF && *ch != ':' && counter < MAX_FILE_SIZE){
+	while(*ch != EOF && *ch != ':' && counter < MAX_LINE_SIZE){
 		str[counter] = *ch;
 		counter++;
 		*ch = fgetc(fptr);
@@ -104,23 +97,29 @@ static char* parseTarg(FILE *fptr, char* ch, unsigned int* lineNum, char* currLi
 	if(*ch == EOF){
 		printBadLine(currLine, lineNum);
 	}
-	checkSize(counter, MAX_FILE_SIZE, lineNum, currLine); //Target file len is too long
 
 	str[counter] = '\0';
+	str = reallocWrapper(str, counter + 1, sizeof(char));
 	//realloc;
 	*ch = fgetc(fptr); // need to do for future parsing
 	return str;
 }
 
 static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCounts, unsigned int* lineNum, char* currLine){
-	struct Target** deps = (struct Target**) mallocWrapper(sizeof(struct Target), MAX_FILE_SIZE);
-
+	size_t initialChildCount = 255;
+	struct Target** deps = (struct Target**) mallocWrapper(sizeof(struct Target*), initialChildCount);
 	size_t childCount = 0; //index count for Target** deps
 	while(*ch != '\n' && *ch != EOF){
 		skipWhitespace(fptr, ch); //skip white space between each child
 		//don't check EOF, maybe last deps are all targets
 		size_t fileLenCount = 0; //length of file name
 		char* str = createStr(MAX_FILE_SIZE);
+		/*
+		//this wheere we do a realloc
+		if(childCount >= initialChildCount){
+			deps = (struct Target**) doubleAllocatedMemory(deps, &initialChildCount, sizeof(struct* Target));
+		}
+		*/
 		
 		while(*ch != ' ' && fileLenCount < MAX_FILE_SIZE && *ch != EOF && *ch != '\n'){
 			checkColon(ch, lineNum, currLine);
@@ -128,14 +127,8 @@ static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCou
 			fileLenCount++;
 			*ch = fgetc(fptr);
 		}
+		//making sure we don't exceeed linux file length
 		checkSize(fileLenCount, MAX_FILE_SIZE, lineNum, currLine);	
-		/*
-		//this wheere we do a realloc
-		if(childCount >= MAX_FILE_SIZE){
-			fprintf(stderr, "Too many files included");
-			exit(-1);
-		}
-		*/
 		// no dependencies, could be something like a clean command
 		if(str[0] == '\0') {
 			break;
@@ -149,37 +142,39 @@ static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCou
 	(*lineNum)++; //have to deref first otherwise we're incrementing an address -> BAD
 	*ch = fgetc(fptr); //finished with this, move on
 	//maybe there's a ton of \n before a command
-	skipNewline(fptr, ch, lineNum);
+	skipNewlineComm(fptr, ch, lineNum);
 	sizeCounts->childCount = childCount;
 	return deps;
 }
 
 static char*** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts, unsigned int* lineNum){
-	char*** commands = (char***) calloc(MAX_FILE_SIZE, sizeof(char **));
+	size_t initialCommandCount = 255;
+	char*** commands = (char***) calloc(initialCommandCount, sizeof(char **));
 	size_t numCommands = 0;
+
 	while(*ch == '\t' && *ch != EOF){
 
 		*ch = fgetc(fptr); //already know it's tab, need to move on
 		skipWhitespaceTabs(fptr, ch);
 		
 		char* wholeLine = getWholeLine(fptr, ch, lineNum); //checks for NULL and max line length 1024
-		
-		commands[numCommands] = (char**) calloc(MAX_FILE_SIZE, sizeof(char*));	
+	
+		size_t initialLineArgs = 255;	
+		commands[numCommands] = (char**) calloc(initialLineArgs, sizeof(char*));	
 		size_t currCommand = 0;
 		size_t currChar = 0;
 		
 		while(*ch != '\n' && *ch != EOF){ 
 			commands[numCommands][currCommand] = createStr(MAX_LINE_SIZE);
-			while((*ch != ' ' || *ch != '\t') && *ch != EOF && *ch != '\n'){
+			while((*ch != ' ' && *ch != '\t') && *ch != EOF && *ch != '\n'){
 				commands[numCommands][currCommand][currChar] = *ch;
 				currChar++;
 				*ch = fgetc(fptr);
 			}
-//			checkSize(currLineLen, MAX_LINE_SIZE, lineNum);  //do a realloc for char[][][HERE], check currChar
-//			otherwise checkSize unnecessary	
-
 			commands[numCommands][currCommand][currChar] = '\0';
 			//do realloc
+			commands[numCommands][currCommand] = 
+				(char*) reallocWrapper(commands[numCommands][currCommand], currChar + 1, sizeof(char));
 			currChar = 0;
 			currCommand++;
 			skipWhitespaceTabs(fptr, ch);
@@ -190,19 +185,22 @@ static char*** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts, uns
 		       	printBadLine(wholeLine, lineNum);
 		}
 
-		//set commands[numCommands][currCommand] = '\0'
-		//realloc with currCommand
+		//done adding commands for that line
+		commands[numCommands][currCommand] = NULL;
+		commands[numCommands] = (char**) reallocWrapper(commands[numCommands], currCommand + 1, sizeof(char*));
 		
 		if(*ch != EOF){ //Not eof so we can increment line number and get next char
 			numCommands++;
-			//might have to realloc to double space if we have run out
+			if(numCommands >= initialCommandCount){
+				commands = (char***) doubleAllocatedMem(commands, &initialCommandCount, sizeof(char**));
+			}
 			(*lineNum)++; //going to a new line with new commands
 			*ch = fgetc(fptr); 
-			skipNewline(fptr, ch, lineNum); // maybe there's a bunch of new lines after eg \t<commands>\n\n\n\n\t<commands>
+			skipNewlineComm(fptr, ch, lineNum); // maybe there's a bunch of new lines after eg \t<commands>\n\n\n\n\t<commands>
 		}
 		wholeLine = freeAndNULL(wholeLine); // Done with current line
 	}
-	//realloc with commands[numCommands]
+	//realloc of char*** handled in target.c
 	//don't check EOF here, handled by caller
 	sizeCounts->commandCount = numCommands;
 	return commands;
@@ -221,13 +219,23 @@ static struct Rules* createRules(struct Target** parsedRules, size_t ruleCount){
 	return rules;
 }
 
-static void skipNewline(FILE *fptr, char* ch, unsigned int* lineNum){ 
-	if(*ch == '\n' && *ch != EOF){
-		while(( *ch = fgetc(fptr)) != EOF && *ch == '\n'){
-			(*lineNum)++;
-		}			
+static void skipNewlineComm(FILE *fptr, char* ch, unsigned int* lineNum){ 
+	while((*ch == '\n' || *ch == '#') && *ch != EOF){
+		if(*ch == '\n'){
+			while((*ch = fgetc(fptr)) != EOF && *ch == '\n'){
+				(*lineNum)++;
+			}			
+		}
+		else if(*ch == '#'){
+			char* currLine = getWholeLine(fptr, ch, lineNum); //checks for lengths and null bytes
+			currLine = freeAndNULL(currLine); //safe to parse ahead
+			while((*ch = fgetc(fptr)) != EOF && *ch != '\n');
+			if(*ch != EOF){
+				*ch = fgetc(fptr);
+				(*lineNum)++;
+			}
+		}
 	}
-
 }
 
 static void skipWhitespace(FILE *fptr, char* ch){
@@ -244,7 +252,7 @@ static void skipWhitespaceTabs(FILE *fptr, char* ch){
 
 static void checkSize(const size_t currLen, const size_t maxLen, unsigned int* lineNum, char* currStr){
 	if(currLen >= maxLen){
-		fprintf(stderr, "Exceeded line length at line %u: %s", *lineNum, currStr);
+		fprintf(stderr, "Exceeded size at line %u: %s\n", *lineNum, currStr);
 		exit(-1);
 	}
 }
@@ -256,7 +264,7 @@ static void checkColon(char* ch, unsigned int* lineNum, char* currLine){
 }
 
 static void printBadLine(char* currStr, unsigned int* lineNum){
-	fprintf(stderr, "%u: Invalid Line: %s", *lineNum, currStr);
+	fprintf(stderr, "%u: Invalid Line: %s\n", *lineNum, currStr);
 	exit(-1);
 }
 

@@ -21,7 +21,7 @@ struct Target* createTarget(char* fileName, char*** comms, struct Target** deps,
 	}
 
 	//realloc the arrays so it fits properly
-	char** commands = (char**) realloc(comms, numComms * sizeof(char*));
+	char*** commands = (char***) realloc(comms, numComms * sizeof(char**));
 	if(commands == NULL){
 		free(comms);
 		fprintf(stderr, "Failed to realloc in Target");
@@ -70,7 +70,7 @@ struct Target* createChild(char* fileName, size_t fileLen){
 	targ->modTime = setModTime(targ);
 	targ->targetLen = fileLen;
 	targ->isRule = 0; //not a rule
-	targ->visited = -1; // we don't circular dependency if not a rule
+	targ->visited = -1; // we don't check circular dependency if not a rule
 	
 	return targ;
 }

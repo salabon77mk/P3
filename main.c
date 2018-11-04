@@ -8,23 +8,37 @@
 #include "target.h"
 #include "parser.h"
 #include "graphtrav.h"
+#include "cmd_parse.h"
 
-static char* getMake();
+static char* getMake(char* specifiedMake, size_t makeLength);
 static struct Rules* getRules(const char* makefile);
 
 
-int main(void){
-	const char* makefile = getMake();
+int main(int argc, char** argv){
+	struct parsedCMD* args = parseCMD(argc, argv);
+	const char* makefile = getMake(args->specifiedMakefile, args->makefileSize);
 	struct Rules* rules = getRules(makefile);
 	rules = createGraph(rules);	
-//	build(rules->rules[0]);
+	if(args->specifiedRule != NULL){
+		struct Target* desiredRule = getRule(rules, args->specifiedRule); 
+		if(desiredRule != NULL){
+			build(desiredRule);
+		}
+		else{
+			fprintf(stderr, "Specified rule: %s not found, exiting", args->specifiedRule);
+			exit(-1);
+		}
+	}
+	else{
+		build(rules->rules[0]);
+	}
 
 	printf("Stop here debugger!");
 }
 
 // Find a makefile
 // If it exists, we will be able to safely open it and pass it to parser
-static char* getMake(){
+static char* getMake(char* specifiedMake, size_t makeLength){
 	//TODO Should be easy to implement extra credit with an arg here
 	DIR *dirp = opendir(".");
 	struct dirent *entry;
@@ -32,22 +46,33 @@ static char* getMake(){
 	
 	char* lilMake = "testmake"; //CHANGE TO makefile WHEN FINISHED
 	char* bigMake = "Makefile";
+	const size_t defaultMakeSize = 8; // 
 	//extra credit const char* targetFile
 
 	while((entry = readdir(dirp)) != NULL){
-		if(!strcmp(entry->d_name, lilMake)){
-			closedir(dirp);
-			return lilMake;
+		if(specifiedMake == NULL){
+			if(!strncmp(entry->d_name, lilMake, defaultMakeSize)){
+				closedir(dirp);
+				return lilMake;
 		}
 
-		if(!strcmp(entry->d_name, bigMake)){
-			closedir(dirp);
-			return bigMake;
+			if(!strncmp(entry->d_name, bigMake, defaultMakeSize)){
+				closedir(dirp);
+				return bigMake;
+			}
+		}
+		else{
+			if(!strncmp(entry->d_name, specifiedMake, makeLength)){
+				closedir(dirp);
+				return specifiedMake;
+			}
 		}
 	}
 
+
 	closedir(dirp);
-	return NULL; //failed to find
+	fprintf(stderr, "No makefile found, exiting \n");
+	exit(-1);
 }
 
 static struct Rules* getRules(const char* makefile){
