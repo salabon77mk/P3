@@ -43,6 +43,7 @@ struct Target* createTarget(char* fileName, char*** comms, struct Target** deps,
 	targ->modTime = setModTime(targ);
 	targ->targetLen = 0; //we will never care for this value if it's a rule
 	targ->isRule = 1; // 0 is our false value
+	targ->visited = 0; // for checking circular deps later
 	return targ;
 }
 
@@ -69,6 +70,7 @@ struct Target* createChild(char* fileName, size_t fileLen){
 	targ->modTime = setModTime(targ);
 	targ->targetLen = fileLen;
 	targ->isRule = 0; //not a rule
+	targ->visited = -1; // we don't circular dependency if not a rule
 	
 	return targ;
 }

@@ -11,6 +11,7 @@ struct Target{
 	char*** commands;
 	int modTime;
 	int isRule;
+	int visited;
 	size_t targetLen;
 	size_t numCommands;
 	size_t numChildren;

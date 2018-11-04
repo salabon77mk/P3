@@ -10,7 +10,8 @@
 // unstatic it, put it in header file, get rid of nextRuleIndex
 static struct Target* getRuleGraph(struct Rules* rules,  struct Target* currTarg); // for internal use
 static struct Target* assignRule(struct Target* rule, struct Target* child);
-
+static void checkCycle(struct Rules* rules);
+static void isCycle(struct Target* target);
 
 struct Rules* createGraph(struct Rules* rules){
 	for(size_t i = 0; i < rules->numRules; i++){
@@ -22,6 +23,7 @@ struct Rules* createGraph(struct Rules* rules){
 			//otherwise just move on
 		}
 	}
+	checkCycle(rules);
 	return rules;
 }
 
@@ -77,3 +79,23 @@ static struct Target* assignRule(struct Target* rule, struct Target* child){
 	return child;
 }
 
+static void checkCycle(struct Rules* rules){
+	for(size_t i = 0; i < rules->numRules; i++){
+		isCycle(rules->rules[i]);
+	}
+
+}
+static void isCycle(struct Target* target){
+	if(target->isRule){
+		if(!target->visited){
+			target->visited = 1;
+			for(size_t i = 0; i < target->numChildren; i++){
+				isCycle(target->children[i]);
+			}
+		}
+		else{
+		fprintf(stderr, "Detected cycle for rule: %s\n", target->target);		
+		exit(-1);
+		}
+	}
+}
