@@ -17,7 +17,7 @@ int main(void){
 	const char* makefile = getMake();
 	struct Rules* rules = getRules(makefile);
 	rules = createGraph(rules);	
-	build(rules->rules[0]);
+//	build(rules->rules[0]);
 
 	printf("Stop here debugger!");
 }

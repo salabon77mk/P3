@@ -11,8 +11,6 @@ struct Target{
 	char*** commands;
 	int modTime;
 	int isRule;
-	int ruleAssigned;
-	//int isFile // modify this in setMoDTime?
 	size_t targetLen;
 	size_t numCommands;
 	size_t numChildren;

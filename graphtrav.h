@@ -6,6 +6,6 @@
 
 struct Rules* createGraph(struct Rules* rules);
 void build(struct Target* targ); //recursive builder
-struct Target* getRule(char* desiredRule);
+struct Target* getRule(struct Rules* rules, char* desiredRule);
 #endif
 

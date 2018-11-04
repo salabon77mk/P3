@@ -28,9 +28,7 @@ static void skipNewline(FILE *fptr, char* ch,  unsigned int* lineNum );
 static void skipWhitespace(FILE *fptr, char* ch);
 static void skipWhitespaceTabs(FILE *fptr, char* ch);
 static void checkSize(const size_t currLen, const size_t maxLen, unsigned int* lineNum, char* currStr);
-static void checkEOF(char* ch, unsigned int* lineNum);
 static void checkColon(char* ch, unsigned int* lineNum, char* currLine);
-static void checkNULL(char* ch, unsigned int* lineNum, char* currStr);
 
 static void printBadLine(char* currStr, unsigned int* lineNum);
 static char* getWholeLine(FILE *fptr, char* ch, unsigned int* lineNum);
@@ -103,7 +101,9 @@ static char* parseTarg(FILE *fptr, char* ch, unsigned int* lineNum, char* currLi
 			}
 		}
 	}
-	checkEOF(ch, lineNum); //Accounts for a line that could be "target     EOF"
+	if(*ch == EOF){
+		printBadLine(currLine, lineNum);
+	}
 	checkSize(counter, MAX_FILE_SIZE, lineNum, currLine); //Target file len is too long
 
 	str[counter] = '\0';
@@ -116,9 +116,9 @@ static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCou
 	struct Target** deps = (struct Target**) mallocWrapper(sizeof(struct Target), MAX_FILE_SIZE);
 
 	size_t childCount = 0; //index count for Target** deps
-	while(*ch != '\n' ){
-		skipWhitespace(fptr, ch); //skip white space between each child and checks for unexpected EOF eg "target: rule1 rule2 EOF"
-		checkEOF(ch, lineNum);
+	while(*ch != '\n' && *ch != EOF){
+		skipWhitespace(fptr, ch); //skip white space between each child
+		//don't check EOF, maybe last deps are all targets
 		size_t fileLenCount = 0; //length of file name
 		char* str = createStr(MAX_FILE_SIZE);
 		
@@ -128,9 +128,7 @@ static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCou
 			fileLenCount++;
 			*ch = fgetc(fptr);
 		}
-		checkSize(fileLenCount, MAX_FILE_SIZE, lineNum, currLine);
-		checkEOF(ch, lineNum); //safety check for next conditionals
-		
+		checkSize(fileLenCount, MAX_FILE_SIZE, lineNum, currLine);	
 		/*
 		//this wheere we do a realloc
 		if(childCount >= MAX_FILE_SIZE){
@@ -152,7 +150,6 @@ static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCou
 	*ch = fgetc(fptr); //finished with this, move on
 	//maybe there's a ton of \n before a command
 	skipNewline(fptr, ch, lineNum);
-	checkEOF(ch, lineNum); //check after in case we reached EOF eg "target: dep1 dep2 \n\n\n\n\n\n\nEOF"
 	sizeCounts->childCount = childCount;
 	return deps;
 }
@@ -164,7 +161,6 @@ static char*** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts, uns
 
 		*ch = fgetc(fptr); //already know it's tab, need to move on
 		skipWhitespaceTabs(fptr, ch);
-		checkEOF(ch, lineNum); //in case we get something like \t             EOF
 		
 		char* wholeLine = getWholeLine(fptr, ch, lineNum); //checks for NULL and max line length 1024
 		
@@ -190,8 +186,8 @@ static char*** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts, uns
 		}
 
 		//no commands found after a tab
-		if(commands[numCommands][currCommand] == NULL){ 
-		       	printBadLine(char* currStr, unsigned int* lineNum);
+		if(commands[numCommands][0] == NULL){
+		       	printBadLine(wholeLine, lineNum);
 		}
 
 		//set commands[numCommands][currCommand] = '\0'
@@ -246,14 +242,6 @@ static void skipWhitespaceTabs(FILE *fptr, char* ch){
 	}
 }
 
-//peek ahead to if unexpected EOF
-static void checkEOF(char* ch, unsigned int* lineNum){
-	if(*ch == EOF){
-		fprintf(stderr, "Unexpected EOF in line:%u \n", *lineNum);
-		exit(-1);
-	}
-}
-
 static void checkSize(const size_t currLen, const size_t maxLen, unsigned int* lineNum, char* currStr){
 	if(currLen >= maxLen){
 		fprintf(stderr, "Exceeded line length at line %u: %s", *lineNum, currStr);
@@ -264,13 +252,6 @@ static void checkSize(const size_t currLen, const size_t maxLen, unsigned int* l
 static void checkColon(char* ch, unsigned int* lineNum, char* currLine){
 	if(*ch == ':'){
 		printBadLine(currLine, lineNum);
-	}
-}
-
-static void checkNULL(char* ch, unsigned int* lineNum, char* currStr){
-	if(*ch == '\0'){
-		fprintf(stderr, "Unexpected NULL byte in line number: %u \n %s", *lineNum, currStr);
-		exit(-1);
 	}
 }
 
@@ -287,7 +268,11 @@ static char* getWholeLine(FILE *fptr, char* ch, unsigned int* lineNum){
 	char* wholeLine = createStr(MAX_LINE_SIZE);
 
 	while(pbvChar != EOF && pbvChar != '\n' && counter < MAX_LINE_SIZE){
-		checkNULL(&pbvChar, lineNum, wholeLine);
+		//ensure there's no NULL byte in the middle of the string
+		if(pbvChar == '\0'){ 
+			printBadLine(wholeLine, lineNum);
+			exit(-1);
+		}
 		wholeLine[counter] = pbvChar;
 		counter++;
 		pbvChar = fgetc(fptr);	

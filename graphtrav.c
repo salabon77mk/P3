@@ -8,14 +8,14 @@
 #include "forker.h"
 
 // unstatic it, put it in header file, get rid of nextRuleIndex
-static struct Target* getRule(struct Rules* rules,  struct Target* currTarg); // for internal use
+static struct Target* getRuleGraph(struct Rules* rules,  struct Target* currTarg); // for internal use
 static struct Target* assignRule(struct Target* rule, struct Target* child);
 
 
 struct Rules* createGraph(struct Rules* rules){
 	for(size_t i = 0; i < rules->numRules; i++){
 		for(size_t j = 0; j < rules->rules[i]->numChildren; j++){
-			struct Target* matchRule = getRule(rules, rules->rules[i]->children[j]);
+			struct Target* matchRule = getRuleGraph(rules, rules->rules[i]->children[j]);
 			if(matchRule != NULL){
 				rules->rules[i]->children[j] = assignRule(matchRule, rules->rules[i]->children[j]);
 			}
@@ -48,7 +48,7 @@ void build(struct Target* targ){
 		}
 	}	
 }
-struct Target* getRule(char* desiredRule){
+struct Target* getRule(struct Rules* rules, char* desiredRule){
 	for(size_t i = 0; i < rules->numRules; i++){
 		if(!strncmp(rules->rules[i]->target, desiredRule, strlen(desiredRule))){
 			return rules->rules[i];
@@ -60,7 +60,7 @@ struct Target* getRule(char* desiredRule){
 //Add an ASSIGNEDRULE var to struct for circular dependencies
 //
 // UNSTATIC IT, INCLUDE IT IN MAIN, GET RID OF NEXTRULE INDEX
-static struct Target* getRule(struct Rules* rules,  struct Target* currTarg){
+static struct Target* getRuleGraph(struct Rules* rules,  struct Target* currTarg){
 	for(size_t i = 0; i < rules->numRules; i++){
 		if(!strncmp(rules->rules[i]->target, currTarg->target, currTarg->targetLen)){
 			return rules->rules[i];

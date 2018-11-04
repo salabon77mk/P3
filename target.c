@@ -43,7 +43,6 @@ struct Target* createTarget(char* fileName, char*** comms, struct Target** deps,
 	targ->modTime = setModTime(targ);
 	targ->targetLen = 0; //we will never care for this value if it's a rule
 	targ->isRule = 1; // 0 is our false value
-	targ->ruleAssigned = 0; //false, this will be used to detect circular deps
 	return targ;
 }
 

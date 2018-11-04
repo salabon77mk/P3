@@ -4,16 +4,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/wait.h>
 #include "target.h"
 
-void runCommands(char** commands, char* target){
-		int rc = fork();
 
-		if(rc < 0){
+void runCommands(char** commands, char* target){
+		pid_t pid = fork();
+
+		if(pid < 0){
 			fprintf(stderr, "Fork failed, exiting");
 			exit(-1);
 		}
-		else if(rc == 0){
+		else if(pid == 0){
 			int i = 0;
 			char* command = commands[i];
 			while(command != NULL){
@@ -32,6 +34,6 @@ void runCommands(char** commands, char* target){
 			}
 		}
 		else{
-			int rc_wait = wait(NULL);
+			wait(NULL);
 		}
 }
