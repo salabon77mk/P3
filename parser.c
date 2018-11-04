@@ -61,7 +61,7 @@ struct Rules* parseRules(FILE *fptr){
 			struct Target* rule = createTarget(targ, commands, deps, sizeCounts.commandCount, sizeCounts.childCount);
 			rules[ruleCount] = rule;
 			ruleCount++;
-			printCont(rule);
+	//		printCont(rule);
 		}
 	}
 	//ensure file isn't empty

@@ -36,8 +36,8 @@ void build(struct Target* targ){
 				build(targ->children[i]);
 			}
 			//it's not a rule and the file doesn't exist
-			if(targ->children[i]->modTime == 0){
-				fprintf(stderr, "File not found for recipe, exiting");
+			else if(targ->children[i]->modTime == 0){
+				fprintf(stderr, "File:%s not found for recipe:%s, exiting\n", targ->children[i]->target, targ->target);
 				exit(-1);
 			}
 			needBuild = 1;
@@ -48,6 +48,9 @@ void build(struct Target* targ){
 		for(size_t i = 0; i < targ->numCommands; i++){
 			runCommands(targ->commands[i], targ->target);	
 		}
+	}
+	else{
+		fprintf(stderr, "Recipe for %s is up to date\n", targ->target);
 	}	
 }
 struct Target* getRule(struct Rules* rules, char* desiredRule){
@@ -97,5 +100,6 @@ static void isCycle(struct Target* target){
 		fprintf(stderr, "Detected cycle for rule: %s\n", target->target);		
 		exit(-1);
 		}
+		target->visited = 0; //we can reset for recursive call
 	}
 }
