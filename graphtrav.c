@@ -6,13 +6,16 @@
 #include "target.h"
 #include "parser.h"
 #include "forker.h"
-static struct Target* getRule(struct Rules* rules,  struct Target* currTarg, size_t nextRuleIndex);
+
+// unstatic it, put it in header file, get rid of nextRuleIndex
+static struct Target* getRule(struct Rules* rules,  struct Target* currTarg); // for internal use
 static struct Target* assignRule(struct Target* rule, struct Target* child);
+
 
 struct Rules* createGraph(struct Rules* rules){
 	for(size_t i = 0; i < rules->numRules; i++){
 		for(size_t j = 0; j < rules->rules[i]->numChildren; j++){
-			struct Target* matchRule = getRule(rules, rules->rules[i]->children[j], (i + 1));
+			struct Target* matchRule = getRule(rules, rules->rules[i]->children[j]);
 			if(matchRule != NULL){
 				rules->rules[i]->children[j] = assignRule(matchRule, rules->rules[i]->children[j]);
 			}
@@ -45,10 +48,20 @@ void build(struct Target* targ){
 		}
 	}	
 }
+struct Target* getRule(char* desiredRule){
+	for(size_t i = 0; i < rules->numRules; i++){
+		if(!strncmp(rules->rules[i]->target, desiredRule, strlen(desiredRule))){
+			return rules->rules[i];
+		}
+	}
+	return NULL; //found nothing
+}
 
 //Add an ASSIGNEDRULE var to struct for circular dependencies
-static struct Target* getRule(struct Rules* rules,  struct Target* currTarg, size_t nextRuleIndex){
-	for(size_t i = nextRuleIndex; i < rules->numRules; i++){
+//
+// UNSTATIC IT, INCLUDE IT IN MAIN, GET RID OF NEXTRULE INDEX
+static struct Target* getRule(struct Rules* rules,  struct Target* currTarg){
+	for(size_t i = 0; i < rules->numRules; i++){
 		if(!strncmp(rules->rules[i]->target, currTarg->target, currTarg->targetLen)){
 			return rules->rules[i];
 		}
@@ -64,30 +77,3 @@ static struct Target* assignRule(struct Target* rule, struct Target* child){
 	return child;
 }
 
-/* WITH CHILD CODE
-struct Rules* createGraph(struct Rules* rules){
-	for(size_t i = 0; i < rules->numRules; i++){
-		for(size_t j = 0; j < rules->rules[i]->numChildren; j++){
-			isRule(rules, rules->rules[i], rules->rules[i]->children[j], (i + 1)); //we're looking if a rule down the file exists
-		}
-	}
-	return rules;
-}
-
-static int isRule(struct Rules* rules,  struct Target* currTarg, struct Target* currChild, size_t nextRuleIndex){
-	for(size_t i = nextRuleIndex; i < rules->numRules; i++){
-		if(!strncmp(rules->rules[i]->target, currChild->target, currChild->targetLen)){
-			assignRule(rules->rules[i], currTarg, currCh);
-			return 1;
-		}
-	}
-	return 0; //false value in C
-}
-
-static void assignRule(struct Target* rule, struct Target* parent, size_t indexOfChild){
-	struct Target* tmp = parent->children[indexOfChild];
-	parent->children[indexOfChild] = child;
-	free(tmp);
-	tmp = NULL;
-}
-*/

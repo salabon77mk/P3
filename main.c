@@ -11,7 +11,6 @@
 
 static char* getMake();
 static struct Rules* getRules(const char* makefile);
-static void setNumRules(const struct Target** rules, size_t num);
 
 
 int main(void){
@@ -63,8 +62,4 @@ static struct Rules* getRules(const char* makefile){
 	struct Rules* rules = parseRules(fptr);
 	fclose(fptr);
 	return rules;
-}
-
-static void setNumRules(const struct Target** rules, size_t num){
-	//do loops
 }

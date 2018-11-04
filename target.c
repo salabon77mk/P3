@@ -42,7 +42,8 @@ struct Target* createTarget(char* fileName, char*** comms, struct Target** deps,
 	targ->numChildren = numChild;
 	targ->modTime = setModTime(targ);
 	targ->targetLen = 0; //we will never care for this value if it's a rule
-	targ->isRule = 1; // 0 is our true value
+	targ->isRule = 1; // 0 is our false value
+	targ->ruleAssigned = 0; //false, this will be used to detect circular deps
 	return targ;
 }
 
@@ -51,6 +52,13 @@ struct Target* createChild(char* fileName, size_t fileLen){
 
 	if(targ == NULL){
 		fprintf(stderr, "malloc failed");
+		exit(-1);
+	}
+
+	char* targName = (char*) realloc(fileName, fileLen * sizeof(char));
+	if(targName == NULL){
+		free(targName);
+		fprintf(stderr, "Failed to realloc in Target");
 		exit(-1);
 	}
 
@@ -80,7 +88,7 @@ void printCont(const struct Target* targ){
 	printf("numCommands %zu\n", targ->numCommands);
 	printf("numChildren %zu\n", targ->numChildren);
 	
-	for(int i = 0; i < targ->numCommands; i++){
+	for(size_t i = 0; i < targ->numCommands; i++){
 		int j = 0;
 		while(targ->commands[i][j] != NULL){
 			printf("COMMANDS %s\n", targ->commands[i][j]);
@@ -88,8 +96,8 @@ void printCont(const struct Target* targ){
 		}
 	}
 
-	for(int i = 0; i < targ->numChildren; i++){
-		printf("TARGET CHILD #%d %s \n", i, targ->children[i]->target);
+	for(size_t i = 0; i < targ->numChildren; i++){
+		printf("TARGET CHILD #%zu %s \n", i, targ->children[i]->target);
 	}
 	printf("\n");
 

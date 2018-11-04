@@ -31,4 +31,7 @@ void runCommands(char** commands, char* target){
 				exit(-1);
 			}
 		}
+		else{
+			int rc_wait = wait(NULL);
+		}
 }
