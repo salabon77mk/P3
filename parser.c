@@ -152,6 +152,11 @@ static char*** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts, uns
 	char*** commands = (char***) calloc(initialCommandCount, sizeof(char **));
 	size_t numCommands = 0;
 
+	//set of commands could start with a NULL
+	if(*ch == '\0'){
+		fprintf(stderr, "Unexpected null byte in line %u\n", *lineNum);
+		exit(-1);
+	}
 	while(*ch == '\t' && *ch != EOF){
 
 		*ch = fgetc(fptr); //already know it's tab, need to move on
