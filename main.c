@@ -32,8 +32,6 @@ int main(int argc, char** argv){
 	else{
 		build(rules->rules[0]);
 	}
-
-	printf("Stop here debugger!");
 }
 
 // Find a makefile
@@ -44,7 +42,7 @@ static char* getMake(char* specifiedMake, size_t makeLength){
 	struct dirent *entry;
 
 	
-	char* lilMake = "testmake"; //CHANGE TO makefile WHEN FINISHED
+	char* lilMake = "makefile";
 	char* bigMake = "Makefile";
 	const size_t defaultMakeSize = 8; // 
 	//extra credit const char* targetFile
@@ -55,7 +53,6 @@ static char* getMake(char* specifiedMake, size_t makeLength){
 				closedir(dirp);
 				return lilMake;
 		}
-
 			if(!strncmp(entry->d_name, bigMake, defaultMakeSize)){
 				closedir(dirp);
 				return bigMake;
@@ -68,8 +65,6 @@ static char* getMake(char* specifiedMake, size_t makeLength){
 			}
 		}
 	}
-
-
 	closedir(dirp);
 	fprintf(stderr, "No makefile found, exiting \n");
 	exit(-1);
@@ -79,11 +74,11 @@ static struct Rules* getRules(const char* makefile){
 	FILE *fptr;
 
 	fptr = fopen(makefile, "r");
-
 	if(fptr == NULL){
 		fprintf(stderr, "Failed to open makefile, exiting");
 		exit(0);
 	}
+
 	struct Rules* rules = parseRules(fptr);
 	fclose(fptr);
 	return rules;

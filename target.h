@@ -9,9 +9,10 @@
 struct Target{
 	char* target;
 	char*** commands;
-	int modTime;
+	time_t modTime;
 	int isRule;
 	int visited;
+	//isFile
 	size_t targetLen;
 	size_t numCommands;
 	size_t numChildren;

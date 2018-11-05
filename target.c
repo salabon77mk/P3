@@ -6,7 +6,7 @@
 #include <sys/stat.h>
 #include "target.h"
 #include "parser.h"
-
+#include "mem_manage.h"
 
 // will be restructured once I have tested
 
@@ -14,34 +14,26 @@ static int setModTime(struct Target* targ);
 
 struct Target* createTarget(char* fileName, char*** comms, struct Target** deps, size_t numComms, size_t numChild){
 	struct Target* targ = (struct Target*) malloc(sizeof(struct Target));
-
 	if(targ == NULL){
 		fprintf(stderr, "malloc failed");
 		exit(-1);
 	}
 
 	//realloc the arrays so it fits properly
-	char*** commands = (char***) realloc(comms, numComms * sizeof(char**));
-	if(commands == NULL){
-		free(comms);
-		fprintf(stderr, "Failed to realloc in Target");
-		exit(-1);
-	}
-	
-	struct Target** children = (struct Target**) realloc(deps, numChild * sizeof(struct Target*));
-	if(children == NULL){
-		free(deps);
-		fprintf(stderr, "Failed to realloc in Target");
-		exit(-1);
+	if(numComms > 0){
+		comms = (char***) reallocWrapper(comms, numComms, sizeof(char**));
 	}
 
+	if(numChild > 0){
+		deps = (struct Target**) reallocWrapper(deps, numChild, sizeof(struct Target*));
+	}
 	targ->target = fileName;
 	targ->commands = comms;
-	targ->children = children;
+	targ->children = deps;
 	targ->numCommands = numComms;
 	targ->numChildren = numChild;
 	targ->modTime = setModTime(targ);
-	targ->targetLen = 0; //we will never care for this value if it's a rule
+	targ->targetLen = 0; 
 	targ->isRule = 1; // 0 is our false value
 	targ->visited = 0; // for checking circular deps later
 	return targ;
@@ -78,7 +70,7 @@ struct Target* createChild(char* fileName, size_t fileLen){
 static int setModTime(struct Target* targ){
 	struct stat filestat;
 	if(stat(targ->target, &filestat) < 0){
-		return 0; // Has never been created
+		return 0/*7fffffff*/; // Has never been created
 	}
 	return filestat.st_mtime;	
 }

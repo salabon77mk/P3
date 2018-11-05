@@ -35,7 +35,7 @@ static char* getWholeLine(FILE *fptr, char* ch, unsigned int* lineNum);
 
 
 struct Rules* parseRules(FILE *fptr){
-	unsigned int lineNum = 0;
+	unsigned int lineNum = 1;
 	size_t ruleSize = 255;
 	struct Target** rules = (struct Target**) mallocWrapper(sizeof(struct Target*), ruleSize);
 	size_t ruleCount = 0;
@@ -61,7 +61,7 @@ struct Rules* parseRules(FILE *fptr){
 			struct Target* rule = createTarget(targ, commands, deps, sizeCounts.commandCount, sizeCounts.childCount);
 			rules[ruleCount] = rule;
 			ruleCount++;
-	//		printCont(rule);
+	//for debug	printCont(rule); 
 		}
 	}
 	//ensure file isn't empty
