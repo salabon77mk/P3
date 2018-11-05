@@ -55,13 +55,13 @@ struct Rules* parseRules(FILE *fptr){
 			char* currLine = getWholeLine(fptr, &ch, &lineNum);
 			char* targ = parseTarg(fptr, &ch, &lineNum, currLine);
 			struct Target** deps = parseChildren(fptr, &ch, &sizeCounts, &lineNum, currLine);
-			currLine = freeAndNULL(currLine);		
+			freeAndNULL((void**)&currLine);		
 			// Handle getting the whole line in parseCommands
 			char*** commands = parseCommands(fptr, &ch, &sizeCounts, &lineNum);
 			struct Target* rule = createTarget(targ, commands, deps, sizeCounts.commandCount, sizeCounts.childCount);
 			rules[ruleCount] = rule;
 			ruleCount++;
-	//for debug	printCont(rule); 
+//			printCont(rule); 
 		}
 	}
 	//ensure file isn't empty
@@ -135,7 +135,7 @@ static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCou
 		}
 		str[fileLenCount] = '\0';
 		struct Target* depen = createChild(str, fileLenCount); //takes care of realloc
-		fileLenCount = 0;
+//		fileLenCount = 0;
 		deps[childCount] = depen;
 		childCount++;	
 	}
@@ -186,7 +186,7 @@ static char*** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts, uns
 		}
 
 		//done adding commands for that line
-		commands[numCommands][currCommand] = NULL;
+		commands[numCommands][currCommand] = '\0';
 		commands[numCommands] = (char**) reallocWrapper(commands[numCommands], currCommand + 1, sizeof(char*));
 		
 		if(*ch != EOF){ //Not eof so we can increment line number and get next char
@@ -198,7 +198,7 @@ static char*** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts, uns
 			*ch = fgetc(fptr); 
 			skipNewlineComm(fptr, ch, lineNum); // maybe there's a bunch of new lines after eg \t<commands>\n\n\n\n\t<commands>
 		}
-		wholeLine = freeAndNULL(wholeLine); // Done with current line
+		freeAndNULL((void**)&wholeLine); // Done with current line
 	}
 	//realloc of char*** handled in target.c
 	//don't check EOF here, handled by caller
@@ -228,7 +228,7 @@ static void skipNewlineComm(FILE *fptr, char* ch, unsigned int* lineNum){
 		}
 		else if(*ch == '#'){
 			char* currLine = getWholeLine(fptr, ch, lineNum); //checks for lengths and null bytes
-			currLine = freeAndNULL(currLine); //safe to parse ahead
+			freeAndNULL((void**)&currLine); //safe to parse ahead
 			while((*ch = fgetc(fptr)) != EOF && *ch != '\n');
 			if(*ch != EOF){
 				*ch = fgetc(fptr);

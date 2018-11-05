@@ -61,7 +61,7 @@ void build(struct Target* targ){
 
 	if(needBuild){
 		for(size_t i = 0; i < targ->numCommands; i++){
-			runCommands(targ->commands[i], targ->target);	
+			runCommands(targ->commands[i], targ->target, targ->numArgs[i]);	
 		}
 	}
 	else{

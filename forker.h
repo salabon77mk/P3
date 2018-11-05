@@ -5,7 +5,7 @@
 #define FORKER_H
 
 
-void runCommands(char** commands, char* target);
+void runCommands(char** commands, char* target, size_t numArgs);
 
 
 #endif

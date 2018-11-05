@@ -11,6 +11,7 @@
 // will be restructured once I have tested
 
 static int setModTime(struct Target* targ);
+static size_t* getNumArgs(char*** commands, size_t numComms);
 
 struct Target* createTarget(char* fileName, char*** comms, struct Target** deps, size_t numComms, size_t numChild){
 	struct Target* targ = (struct Target*) malloc(sizeof(struct Target));
@@ -18,7 +19,6 @@ struct Target* createTarget(char* fileName, char*** comms, struct Target** deps,
 		fprintf(stderr, "malloc failed");
 		exit(-1);
 	}
-
 	//realloc the arrays so it fits properly
 	if(numComms > 0){
 		comms = (char***) reallocWrapper(comms, numComms, sizeof(char**));
@@ -27,6 +27,13 @@ struct Target* createTarget(char* fileName, char*** comms, struct Target** deps,
 	if(numChild > 0){
 		deps = (struct Target**) reallocWrapper(deps, numChild, sizeof(struct Target*));
 	}
+	if(numComms > 0){
+		targ->numArgs = getNumArgs(comms, numComms);
+	}
+	else{
+		targ->numArgs = NULL;
+	}
+
 	targ->target = fileName;
 	targ->commands = comms;
 	targ->children = deps;
@@ -46,17 +53,14 @@ struct Target* createChild(char* fileName, size_t fileLen){
 		fprintf(stderr, "malloc failed");
 		exit(-1);
 	}
-
-	char* targName = (char*) realloc(fileName, fileLen * sizeof(char));
-	if(targName == NULL){
-		free(targName);
-		fprintf(stderr, "Failed to realloc in Target");
-		exit(-1);
+	if(fileLen > 0){
+		fileName = (char*) reallocWrapper(fileName, fileLen, sizeof(char));
 	}
 
 	targ->target = fileName;
 	targ->commands = NULL;
 	targ->children = NULL;
+	targ->numArgs = NULL;
 	targ->numCommands = 0;
 	targ->numChildren = 0;
 	targ->modTime = setModTime(targ);
@@ -75,6 +79,20 @@ static int setModTime(struct Target* targ){
 	return filestat.st_mtime;	
 }
 
+static size_t* getNumArgs(char*** commands, size_t numComms){
+	size_t* numArgs = mallocWrapper(numComms, sizeof(size_t));
+	for(size_t i = 0; i < numComms; i++){
+		size_t currArgCount = 0;
+		int j = 0;
+		while(commands[i][j] != '\0'){
+			currArgCount++;
+			j++;
+		}
+		numArgs[i] = currArgCount;
+	}
+	return numArgs;
+}
+
 
 void printCont(const struct Target* targ){
 	printf("FILENAME %s\n", targ->target);
@@ -82,11 +100,17 @@ void printCont(const struct Target* targ){
 	printf("numChildren %zu\n", targ->numChildren);
 	
 	for(size_t i = 0; i < targ->numCommands; i++){
-		int j = 0;
-		while(targ->commands[i][j] != NULL){
+//		int j = 0;
+		for(size_t j = 0; j < targ->numArgs[i]; j++){
 			printf("COMMANDS %s\n", targ->commands[i][j]);
+		}
+
+		/*
+		while(targ->commands[i][j] != '\0'){
 			j++;
 		}
+		*/
+		printf("NUMARGS for command #%zu: %zu \n", targ->numCommands, targ->numArgs[i]);
 	}
 
 	for(size_t i = 0; i < targ->numChildren; i++){
@@ -95,3 +119,5 @@ void printCont(const struct Target* targ){
 	printf("\n");
 
 }
+
+

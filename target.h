@@ -16,6 +16,7 @@ struct Target{
 	size_t targetLen;
 	size_t numCommands;
 	size_t numChildren;
+	size_t* numArgs;
 	struct Target** children;
 };
 

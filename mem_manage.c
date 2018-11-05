@@ -45,8 +45,8 @@ void* mallocWrapper(size_t dataType, size_t multiplier){
 	return data;
 }
 
-void* freeAndNULL(void* ptr){
-	free(ptr);
-	ptr = NULL;
-	return ptr;
+void freeAndNULL(void** ptr){
+	free(*ptr);
+	*ptr = NULL;
+//	return ptr;
 }
