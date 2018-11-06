@@ -6,6 +6,7 @@
 #include "target.h"
 #include "parser.h"
 #include "forker.h"
+#include "mem_manage.h"
 
 // unstatic it, put it in header file, get rid of nextRuleIndex
 static struct Target* getRuleGraph(struct Rules* rules,  struct Target* currTarg); // for internal use
@@ -54,7 +55,8 @@ void build(struct Target* targ){
 			}
 		}
 		else{
-			fprintf(stderr, "File:%s not found for recipe:%s, exiting\n", targ->children[i]->target, targ->target);
+			fprintf(stderr, "File:%s not found for recipe:%s, exiting\n",
+				       	targ->children[i]->target, targ->target);
 			exit(-1);
 		}
 	}
@@ -92,8 +94,8 @@ static struct Target* getRuleGraph(struct Rules* rules,  struct Target* currTarg
 static struct Target* assignRule(struct Target* rule, struct Target* child){
 	struct Target* tmp = child;
 	child = rule;
-	free(tmp);
-	tmp = NULL;
+	freeAndNULL((void**)(&tmp->target));
+	freeAndNULL((void**)(&tmp));
 	return child;
 }
 

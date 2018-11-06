@@ -59,13 +59,15 @@ struct parsedCMD* parseCMD(int argc, char** argv){
 }
 
 static struct parsedCMD* create_parsedCMD(){
-	struct parsedCMD* cmdFlags  = (struct parsedCMD*) malloc(sizeof(struct parsedCMD));
+	struct parsedCMD* cmdFlags = (struct parsedCMD*) malloc(sizeof(struct parsedCMD));
 	if(cmdFlags == NULL){
 		fprintf(stderr, "Malloc failed in cmd_parse.c");
 		exit(-1);
 	}
+		
 	cmdFlags->specifiedRule = NULL;
 	cmdFlags->specifiedMakefile = NULL;
+	
 	cmdFlags->makefileSize = 0;
 	cmdFlags->fFlag = 0;
 

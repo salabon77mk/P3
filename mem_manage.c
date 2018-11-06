@@ -16,7 +16,6 @@ char* createStr(size_t size){
 void* reallocWrapper(void* data, size_t newSize, size_t typeSize){
 	void* newData = realloc(data, newSize * typeSize);	
 	if( newData == NULL){
-		free(newData);
 		fprintf(stderr, "Failed to realloc in parser.c:doubleAllocatedMem");
 		exit(-1);
 	}
@@ -27,7 +26,6 @@ void* reallocWrapper(void* data, size_t newSize, size_t typeSize){
 void* doubleAllocatedMem(void* data, size_t* currSize, size_t typeSize){
 	void* newData =  realloc(data, ((*currSize) * 2) * typeSize);
 	if( newData == NULL){
-		free(newData);
 		fprintf(stderr, "Failed to realloc in mem_manage.c:doubleAllocatedMem");
 		exit(-1);
 	}

@@ -53,11 +53,16 @@ struct Target* createChild(char* fileName, size_t fileLen){
 		fprintf(stderr, "malloc failed");
 		exit(-1);
 	}
+	
 	if(fileLen > 0){
 		fileName = (char*) reallocWrapper(fileName, fileLen, sizeof(char));
+		targ->target = fileName;
 	}
-
-	targ->target = fileName;
+	else{
+		freeAndNULL((void**)&fileName);
+		targ->target = NULL;
+	}
+	
 	targ->commands = NULL;
 	targ->children = NULL;
 	targ->numArgs = NULL;

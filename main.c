@@ -9,6 +9,7 @@
 #include "parser.h"
 #include "graphtrav.h"
 #include "cmd_parse.h"
+#include "mem_manage.h"
 
 static char* getMake(char* specifiedMake, size_t makeLength);
 static struct Rules* getRules(const char* makefile);
@@ -22,6 +23,7 @@ int main(int argc, char** argv){
 	if(args->specifiedRule != NULL){
 		struct Target* desiredRule = getRule(rules, args->specifiedRule); 
 		if(desiredRule != NULL){
+			freeAndNULL((void**)&args);
 			build(desiredRule);
 		}
 		else{
@@ -30,8 +32,9 @@ int main(int argc, char** argv){
 		}
 	}
 	else{
+		freeAndNULL((void**)&args);
 		build(rules->rules[0]);
-	}
+	}	
 }
 
 // Find a makefile

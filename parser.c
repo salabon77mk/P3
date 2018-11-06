@@ -114,12 +114,10 @@ static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCou
 		//don't check EOF, maybe last deps are all targets
 		size_t fileLenCount = 0; //length of file name
 		char* str = createStr(MAX_FILE_SIZE);
-		/*
-		//this wheere we do a realloc
+		
 		if(childCount >= initialChildCount){
-			deps = (struct Target**) doubleAllocatedMemory(deps, &initialChildCount, sizeof(struct* Target));
+			deps = (struct Target**) doubleAllocatedMem(deps, &initialChildCount, sizeof(struct Target*));
 		}
-		*/
 		
 		while(*ch != ' ' && fileLenCount < MAX_FILE_SIZE && *ch != EOF && *ch != '\n'){
 			checkColon(ch, lineNum, currLine);
@@ -134,8 +132,8 @@ static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCou
 			break;
 		}
 		str[fileLenCount] = '\0';
+		fileLenCount++;
 		struct Target* depen = createChild(str, fileLenCount); //takes care of realloc
-//		fileLenCount = 0;
 		deps[childCount] = depen;
 		childCount++;	
 	}
