@@ -220,8 +220,9 @@ static struct Rules* createRules(struct Target** parsedRules, size_t ruleCount){
 static void skipNewlineComm(FILE *fptr, char* ch, unsigned int* lineNum){ 
 	while((*ch == '\n' || *ch == '#') && *ch != EOF){
 		if(*ch == '\n'){
-			while((*ch = fgetc(fptr)) != EOF && *ch == '\n'){
+			while(*ch != EOF && *ch == '\n'){
 				(*lineNum)++;
+				*ch = fgetc(fptr);
 			}			
 		}
 		else if(*ch == '#'){
