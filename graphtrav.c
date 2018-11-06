@@ -11,10 +11,12 @@
 // unstatic it, put it in header file, get rid of nextRuleIndex
 static struct Target* getRuleGraph(struct Rules* rules,  struct Target* currTarg); // for internal use
 static struct Target* assignRule(struct Target* rule, struct Target* child);
+static void detectDuplicates(struct Rules* rules);
 static void checkCycle(struct Rules* rules);
 static void isCycle(struct Target* target);
 
 struct Rules* createGraph(struct Rules* rules){
+	detectDuplicates(rules);
 	for(size_t i = 0; i < rules->numRules; i++){
 		for(size_t j = 0; j < rules->rules[i]->numChildren; j++){
 			struct Target* matchRule = getRuleGraph(rules, rules->rules[i]->children[j]);
@@ -94,6 +96,25 @@ static struct Target* assignRule(struct Target* rule, struct Target* child){
 	freeAndNULL((void**)(&tmp->target));
 	freeAndNULL((void**)(&tmp));
 	return child;
+}
+
+static void detectDuplicates(struct Rules* rules){
+	for(size_t i = 0; i < rules->numRules; i++){
+		for(size_t j = i + 1; j < rules->numRules; j++){
+			if(rules->rules[i]->targetLen > rules->rules[j]->targetLen){
+				if(!strncmp(rules->rules[i]->target, rules->rules[j]->target, rules->rules[i]->targetLen)){
+					fprintf(stderr, "Detected duplicate targets: %s, exiting\n", rules->rules[i]->target );
+					exit(-1);
+				}
+			}
+			else{
+				if(!strncmp(rules->rules[i]->target, rules->rules[j]->target, rules->rules[i]->targetLen)){
+					fprintf(stderr, "Detected duplicate targets: %s, exiting\n", rules->rules[i]->target );
+					exit(-1);
+				}
+			}
+		}
+	}
 }
 
 static void checkCycle(struct Rules* rules){

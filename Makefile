@@ -12,6 +12,10 @@ OBJ =main.o parser.o cmd_parse.o  mem_manage.o target.o graphtrav.o forker.o
 
 .PHONY: clean
 	
+cleano:
+	rm *.o
+
 clean:
-		rm *.o 537make
+	rm *.o 537make
+	
 
