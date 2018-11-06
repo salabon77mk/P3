@@ -1,7 +1,6 @@
 // AUTHORS:
 // MYKOLA KUSYY 
 // GARRETT MCLAUGHLIN
-//
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>

@@ -13,34 +13,36 @@
 static int setModTime(struct Target* targ);
 static size_t* getNumArgs(char*** commands, size_t numComms);
 
-struct Target* createTarget(char* fileName, char*** comms, struct Target** deps, size_t numComms, size_t numChild){
+
+//struct Target* createTarget(char* fileName, char*** comms, struct Target** deps, size_t numComms, size_t numChild){
+struct Target* createTarget(char* fileName, char*** comms, struct Target** deps, struct Sizes* sizePOD){
 	struct Target* targ = (struct Target*) malloc(sizeof(struct Target));
 	if(targ == NULL){
 		fprintf(stderr, "malloc failed");
 		exit(-1);
 	}
 	//realloc the arrays so it fits properly
-	if(numComms > 0){
-		comms = (char***) reallocWrapper(comms, numComms, sizeof(char**));
-	}
-
-	if(numChild > 0){
-		deps = (struct Target**) reallocWrapper(deps, numChild, sizeof(struct Target*));
-	}
-	if(numComms > 0){
-		targ->numArgs = getNumArgs(comms, numComms);
+	if(sizePOD->commandCount > 0){
+		comms = (char***) reallocWrapper(comms, sizePOD->commandCount, sizeof(char**));
+		targ->numArgs = getNumArgs(comms, sizePOD->commandCount);
 	}
 	else{
 		targ->numArgs = NULL;
 	}
 
+	if(sizePOD->childCount > 0){
+		deps = (struct Target**) reallocWrapper(deps, sizePOD->childCount, sizeof(struct Target*));
+	}
+
 	targ->target = fileName;
 	targ->commands = comms;
 	targ->children = deps;
-	targ->numCommands = numComms;
-	targ->numChildren = numChild;
+
+	targ->targetLen = sizePOD->targetLen; 
+	targ->numCommands = sizePOD->commandCount;
+	targ->numChildren = sizePOD->childCount;
+
 	targ->modTime = setModTime(targ);
-	targ->targetLen = 0; 
 	targ->isRule = 1; // 0 is our false value
 	targ->visited = 0; // for checking circular deps later
 	return targ;
@@ -54,15 +56,10 @@ struct Target* createChild(char* fileName, size_t fileLen){
 		exit(-1);
 	}
 	
-	if(fileLen > 0){
-		fileName = (char*) reallocWrapper(fileName, fileLen, sizeof(char));
-		targ->target = fileName;
-	}
-	else{
-		freeAndNULL((void**)&fileName);
-		targ->target = NULL;
-	}
 	
+	fileName = (char*) reallocWrapper(fileName, fileLen, sizeof(char));
+	targ->target = fileName;
+		
 	targ->commands = NULL;
 	targ->children = NULL;
 	targ->numArgs = NULL;

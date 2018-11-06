@@ -72,19 +72,16 @@ void build(struct Target* targ){
 }
 struct Target* getRule(struct Rules* rules, char* desiredRule){
 	for(size_t i = 0; i < rules->numRules; i++){
-		if(!strncmp(rules->rules[i]->target, desiredRule, strlen(desiredRule))){
+		if(!strncmp(rules->rules[i]->target, desiredRule, rules->rules[i]->targetLen)){
 			return rules->rules[i];
 		}
 	}
 	return NULL; //found nothing
 }
 
-//Add an ASSIGNEDRULE var to struct for circular dependencies
-//
-// UNSTATIC IT, INCLUDE IT IN MAIN, GET RID OF NEXTRULE INDEX
 static struct Target* getRuleGraph(struct Rules* rules,  struct Target* currTarg){
 	for(size_t i = 0; i < rules->numRules; i++){
-		if(!strncmp(rules->rules[i]->target, currTarg->target, currTarg->targetLen)){
+		if(!strncmp(rules->rules[i]->target, currTarg->target, rules->rules[i]->targetLen)){
 			return rules->rules[i];
 		}
 	}
@@ -120,41 +117,3 @@ static void isCycle(struct Target* target){
 		target->visited = 0; //we can reset for recursive call
 	}
 }
-/*
-void build(struct Target* targ){
-	int needBuild = 0; //will use later to keep track
-	for(size_t i = 0; i < targ->numChildren; i++){
-		if(targ->modTime >= targ->children[i]->modTime){
-			if(targ->children[i]->isRule){
-				build(targ->children[i]);
-			}
-			//it's not a rule and the file doesn't exist
-			else if(targ->children[i]->modTime == 0x7fffffff){
-				fprintf(stderr, "File:%s not found for recipe:%s, exiting\n", targ->children[i]->target, targ->target);
-				exit(-1);
-			}
-			needBuild = 1;
-		}
-	}
-
-	if(needBuild){
-		for(size_t i = 0; i < targ->numCommands; i++){
-			runCommands(targ->commands[i], targ->target);	
-		}
-	}
-	else{
-		fprintf(stderr, "Recipe for %s is up to date\n", targ->target);
-	}	
-}
-		if(targ->modTime < targ->children[i]->modTime){
-			if(targ->children[i]->isRule){
-				build(targ->children[i]);
-			}
-			//it's not a rule and the file doesn't exist
-			else if(targ->children[i]->modTime == 0){
-				fprintf(stderr, "File:%s not found for recipe:%s, exiting\n", targ->children[i]->target, targ->target);
-				exit(-1);
-			}
-			needBuild = 1;
-		}
-*/

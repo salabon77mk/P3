@@ -5,6 +5,7 @@
 #define TARGET_H
 
 #include <stdlib.h>
+#include "sizes_struct.h"
 
 struct Target{
 	char* target;
@@ -21,7 +22,7 @@ struct Target{
 };
 
 
-struct Target* createTarget(char* fileName, char*** comms, struct Target** deps, size_t numComms, size_t numChild);
+struct Target* createTarget(char* fileName, char*** comms, struct Target** deps, struct Sizes* sizePOD);
 
 struct Target* createChild(char* fileName, size_t targetLen);
 

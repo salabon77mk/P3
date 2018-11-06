@@ -6,20 +6,13 @@
 #include "parser.h"
 #include "target.h"
 #include "mem_manage.h"
+#include "sizes_struct.h"
 
-//IMPORTANT NOTE: ALL FREE STATMENTS HAVE BEEN COMMENTED OUT (they follow an exit)
-//want to see if CLANG will complain
-
-struct Sizes{
-	size_t commandCount;
-	size_t childCount;
-};
-
-static const size_t MAX_FILE_SIZE = 256; //Linux max file size, 255 reserved for NULL
+static const size_t MAX_FILE_SIZE = 256; //Linux max file size, 255 reserved for null char
 static const size_t MAX_LINE_SIZE = 1024;
 
 static struct Rules* createRules(struct Target** rules, size_t ruleCount);
-static char* parseTarg(FILE *fptr, char* ch, unsigned int* lineNum, char* currLine);
+static char* parseTarg(FILE *fptr, char* ch, unsigned int* lineNum, char* currLine, struct Sizes* sizes);
 static struct Target** parseChildren(FILE *fptr, char* ch, struct Sizes* sizeCounts, unsigned int* lineNum, char* currLine);
 //char*** equiv to string[][], will help for execvp
 static char*** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts,  unsigned int* lineNum);
@@ -50,18 +43,18 @@ struct Rules* parseRules(FILE *fptr){
 		
 		//If EOF, just stop
 		if(ch != EOF){
-			struct Sizes sizeCounts = {0, 0};
+			struct Sizes sizeCounts = {0, 0, 0};
 		
 			char* currLine = getWholeLine(fptr, &ch, &lineNum);
-			char* targ = parseTarg(fptr, &ch, &lineNum, currLine);
+			char* targ = parseTarg(fptr, &ch, &lineNum, currLine, &sizeCounts);
 			struct Target** deps = parseChildren(fptr, &ch, &sizeCounts, &lineNum, currLine);
 			freeAndNULL((void**)&currLine);		
 			// Handle getting the whole line in parseCommands
 			char*** commands = parseCommands(fptr, &ch, &sizeCounts, &lineNum);
-			struct Target* rule = createTarget(targ, commands, deps, sizeCounts.commandCount, sizeCounts.childCount);
+			struct Target* rule = createTarget(targ, commands, deps, &sizeCounts);
 			rules[ruleCount] = rule;
 			ruleCount++;
-//			printCont(rule); 
+//debug			printCont(rule);  
 		}
 	}
 	//ensure file isn't empty
@@ -69,14 +62,14 @@ struct Rules* parseRules(FILE *fptr){
 		fprintf(stderr, "Empty makefile");
 		exit(-1);
 	}
-
+//debug	printf("%zu\n", ruleCount);
 	//realloc so rest of program runs nice
 	rules = (struct Target**) reallocWrapper(rules, ruleCount, sizeof(struct Target*));
 	struct Rules* rulesStruct = createRules(rules, ruleCount);
 	return rulesStruct; 
 }
 
-static char* parseTarg(FILE *fptr, char* ch, unsigned int* lineNum, char* currLine){
+static char* parseTarg(FILE *fptr, char* ch, unsigned int* lineNum, char* currLine, struct Sizes* sizeCounts){
 	checkColon(ch, lineNum, currLine);
 	skipWhitespace(fptr, ch); //Will make sure we get right to actual content
 	size_t counter = 0; //keep track of where we are in the line
@@ -99,7 +92,9 @@ static char* parseTarg(FILE *fptr, char* ch, unsigned int* lineNum, char* currLi
 	}
 
 	str[counter] = '\0';
-	str = reallocWrapper(str, counter + 1, sizeof(char));
+	counter++;
+	sizeCounts->targetLen = counter;
+	str = reallocWrapper(str, counter, sizeof(char));
 	//realloc;
 	*ch = fgetc(fptr); // need to do for future parsing
 	return str;
