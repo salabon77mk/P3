@@ -32,10 +32,14 @@ struct Rules* createGraph(struct Rules* rules){
 
 
 void build(struct Target* targ){
-	int needBuild = 1; //will use later to keep track
+	int needBuild = 0; //will use later to keep track
+	if(targ->numChildren == 0){ //no dependencies, always considered out of date
+		needBuild = 1;
+	}
+
 	for(size_t i = 0; i < targ->numChildren; i++){
 		if(targ->children[i]->isRule){
-			if(targ->children[i]->modTime == 0){
+			if(targ->children[i]->modTime == 0){ //doesn't exist as a file
 				build(targ->children[i]);
 				needBuild = 1;
 			}
@@ -43,17 +47,10 @@ void build(struct Target* targ){
 				build(targ->children[i]);
 				needBuild = 1;
 			}
-			else{
-				needBuild = 0;
-			}
-			//otherwise it's up to date, no need to build
 		}
 		else if(targ->children[i]->modTime != 0){ // the file exists
 			if(targ->modTime < targ->children[i]->modTime){
 				needBuild = 1;
-			}
-			else{
-				needBuild = 0;
 			}
 		}
 		else{
@@ -72,6 +69,7 @@ void build(struct Target* targ){
 		fprintf(stderr, "Recipe for %s is up to date\n", targ->target);
 	}	
 }
+
 struct Target* getRule(struct Rules* rules, char* desiredRule){
 	for(size_t i = 0; i < rules->numRules; i++){
 		if(!strncmp(rules->rules[i]->target, desiredRule, rules->rules[i]->targetLen)){
@@ -138,3 +136,46 @@ static void isCycle(struct Target* target){
 		target->visited = 0; //we can reset for recursive call
 	}
 }
+/*
+void build(struct Target* targ){
+	int needBuild = 1; //will use later to keep track
+	for(size_t i = 0; i < targ->numChildren; i++){
+		if(targ->children[i]->isRule){
+			if(targ->children[i]->modTime == 0){ //doesn't exist as a file
+				build(targ->children[i]);
+				needBuild = 1;
+			}
+			else if(targ->modTime < targ->children[i]->modTime){
+				build(targ->children[i]);
+				needBuild = 1;
+			}
+			else{
+				needBuild = 0;
+			}
+			//otherwise it's up to date, no need to build
+		}
+		else if(targ->children[i]->modTime != 0){ // the file exists
+			if(targ->modTime < targ->children[i]->modTime){
+				needBuild = 1;
+			}
+			else{
+				needBuild = 0;
+			}
+		}
+		else{
+			fprintf(stderr, "File:%s not found for recipe:%s, exiting\n",
+				       	targ->children[i]->target, targ->target);
+			exit(-1);
+		}
+	}
+
+	if(needBuild){
+		for(size_t i = 0; i < targ->numCommands; i++){
+			runCommands(targ->commands[i], targ->target, targ->numArgs[i]);	
+		}
+	}
+	else{
+		fprintf(stderr, "Recipe for %s is up to date\n", targ->target);
+	}	
+}
+*/
