@@ -184,7 +184,7 @@ static char*** parseCommands(FILE *fptr, char* ch, struct Sizes* sizeCounts, uns
 		}
 
 		//done adding commands for that line
-		commands[numCommands][currCommand] = '\0';
+		commands[numCommands][currCommand] = NULL;
 		commands[numCommands] = (char**) reallocWrapper(commands[numCommands], currCommand + 1, sizeof(char*));
 		
 		if(*ch != EOF){ //Not eof so we can increment line number and get next char

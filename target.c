@@ -86,7 +86,7 @@ static size_t* getNumArgs(char*** commands, size_t numComms){
 	for(size_t i = 0; i < numComms; i++){
 		size_t currArgCount = 0;
 		int j = 0;
-		while(commands[i][j] != '\0'){
+		while(commands[i][j] != NULL){
 			currArgCount++;
 			j++;
 		}
@@ -102,16 +102,10 @@ void printCont(const struct Target* targ){
 	printf("numChildren %zu\n", targ->numChildren);
 	
 	for(size_t i = 0; i < targ->numCommands; i++){
-//		int j = 0;
 		for(size_t j = 0; j < targ->numArgs[i]; j++){
 			printf("COMMANDS %s\n", targ->commands[i][j]);
 		}
 
-		/*
-		while(targ->commands[i][j] != '\0'){
-			j++;
-		}
-		*/
 		printf("NUMARGS for command #%zu: %zu \n", targ->numCommands, targ->numArgs[i]);
 	}
 
