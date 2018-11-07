@@ -32,19 +32,16 @@ struct parsedCMD* parseCMD(int argc, char** argv){
 			case '?':
 				if(optopt == 'f'){
 					fprintf(stderr, "Option -%c requires an argument.\n", optopt);
-					break;
 				}
 				else if(isprint(optopt)){
 					fprintf(stderr, "Unknown option -%c. \n", optopt);
-					break;
 				}
 				else{
 					fprintf(stderr, "Unknown option character '\\x%x'.\n", optopt);
-					break;
 				}
+				break;
 			default:
 				abort();
-				break;
 		}
 	}
 	// take the first arg as the specified rule
