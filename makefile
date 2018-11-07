@@ -22,8 +22,8 @@ graphtrav.o: graphtrav.c target.h parser.h forker.h mem_manage.h
 forker.o: forker.c target.h
 	gcc -c forker.c -g -Wall -Wextra
 
-cleano:
-	rm *.o
-
-clean:
+cleanALL:
 	rm *.o 537make
+clean:
+	rm main.o parser.o cmd_parse.o mem_manage.o target.o graphtrav.o forker.o -g -Wall -Wextra
+
